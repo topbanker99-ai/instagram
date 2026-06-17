@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>탑뱅커 · 인스타그램 카드뉴스 발행</title>
+<style>
+  :root {
+    --navy: #1B3A5C;
+    --gold: #C9A961;
+    --teal: #2E8B8B;
+    --offwhite: #F7F9FC;
+    --white: #FFFFFF;
+    --line: #E2E8F0;
+    --muted: #64748B;
+    --danger: #C0392B;
+    --ok: #2E8B8B;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--offwhite);
+    color: var(--navy);
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 660px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  /* Header */
+  .topline { height: 4px; background: var(--gold); border-radius: 2px; }
+  header { padding: 26px 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+  .brand { font-size: 13px; letter-spacing: 3px; color: var(--gold); font-weight: 700; text-transform: uppercase; }
+  h1 { font-size: 26px; margin: 8px 0 4px; font-weight: 800; letter-spacing: -0.4px; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0; }
+
+  /* Sections */
+  .field { margin-bottom: 24px; }
+  .label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .hint { color: var(--muted); font-size: 12px; font-weight: 400; }
+
+  input[type="password"], textarea {
+    width: 100%; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; font-size: 15px; font-family: inherit; color: var(--navy);
+    background: var(--white); outline: none; transition: border-color .15s;
+  }
+  input[type="password"]:focus, textarea:focus { border-color: var(--teal); }
+  textarea { resize: vertical; min-height: 130px; line-height: 1.55; }
+
+  .remember { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .remember input { width: 16px; height: 16px; accent-color: var(--teal); }
+
+  /* Dropzone */
+  .drop {
+    border: 2px dashed var(--line); border-radius: 14px; background: var(--white);
+    padding: 34px 20px; text-align: center; cursor: pointer; transition: all .15s;
+  }
+  .drop:hover { border-color: var(--teal); background: #FBFDFE; }
+  .drop.over { border-color: var(--gold); background: #FFFDF6; }
+  .drop .big { font-size: 15px; font-weight: 700; }
+  .drop .small { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .drop .mark { font-size: 22px; color: var(--gold); display: block; margin-bottom: 10px; }
+
+  /* Thumbnails */
+  .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .thumb {
+    position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    background: var(--white); aspect-ratio: 1 / 1;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .order {
+    position: absolute; top: 6px; left: 6px; min-width: 22px; height: 22px; padding: 0 6px;
+    background: var(--navy); color: #fff; font-size: 12px; font-weight: 700;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  }
+  .thumb .controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; }
+  .thumb .controls button {
+    flex: 1; border: none; background: rgba(27,58,92,.86); color: #fff; font-size: 13px;
+    padding: 5px 0; cursor: pointer;
+  }
+  .thumb .controls button:hover { background: var(--navy); }
+  .thumb .controls .del { background: rgba(192,57,43,.86); }
+  .thumb .controls .del:hover { background: var(--danger); }
+  .thumb .controls button:disabled { opacity: .35; cursor: default; }
+
+  .meta { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+
+  /* Button */
+  .actions { margin-top: 30px; }
+  .btn {
+    width: 100%; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 800;
+    cursor: pointer; background: var(--navy); color: #fff; letter-spacing: .3px; transition: background .15s;
+  }
+  .btn:hover:not(:disabled) { background: #14304d; }
+  .btn:disabled { background: #9AA8B8; cursor: default; }
+  .btn .accent { color: var(--gold); }
+
+  /* Status */
+  .status { margin-top: 22px; border-radius: 12px; padding: 16px 18px; font-size: 14px; line-height: 1.55; display: none; }
+  .status.show { display: block; }
+  .status.work { background: #EEF6F6; border: 1px solid #CDE6E6; color: #1E5E5E; }
+  .status.ok   { background: #ECF7F2; border: 1px solid #BFE6D5; color: #1B6B4A; }
+  .status.err  { background: #FCEDEC; border: 1px solid #F2C6C2; color: #8A2A20; }
+  .status a { color: inherit; font-weight: 700; }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; border: 2px solid #BcdbdB;
+    border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite;
+    vertical-align: -2px; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .footnote { margin-top: 34px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="topline"></div>
+<div class="wrap">
+  <header>
+    <div class="brand">탑뱅커</div>
+    <h1>인스타그램 카드뉴스 발행</h1>
+    <p class="sub">이미지를 올리고 본문을 입력한 뒤 발행하면, 캐러셀로 자동 게시됩니다.</p>
+  </header>
+
+  <div class="field">
+    <label class="label" for="secret">발행 비밀키 <span class="hint">— Vercel에 등록한 PUBLISH_SECRET</span></label>
+    <input type="password" id="secret" placeholder="비밀키 입력" autocomplete="off" />
+    <label class="remember"><input type="checkbox" id="remember" /> 이 브라우저에 비밀키 저장</label>
+  </div>
+
+  <div class="field">
+    <label class="label">카드뉴스 이미지 <span class="hint">— 2~10장 (JPG·PNG), 파일명 순서대로 게시</span></label>
+    <div class="drop" id="drop">
+      <span class="mark">▲</span>
+      <div class="big">이미지를 끌어다 놓거나 클릭해서 선택</div>
+      <div class="small">1080 × 1080 권장 · 여러 장 한 번에 선택 가능</div>
+    </div>
+    <input type="file" id="file" accept="image/jpeg,image/png" multiple hidden />
+    <div class="thumbs" id="thumbs"></div>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <div class="field">
+    <label class="label" for="caption">본문 <span class="hint">— 캡션 · 해시태그 (최대 2,200자)</span></label>
+    <textarea id="caption" placeholder="본문 내용과 해시태그를 입력하세요."></textarea>
+    <div class="meta" id="capmeta">0자</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="publish">인스타그램에 <span class="accent">발행</span></button>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="footnote">
+    발행 후 <strong>instagram.com/topbanker99</strong> 에서 게시물을 확인하세요.<br />
+    이미지는 Vercel Blob에 저장된 뒤 인스타그램에 전달됩니다.
+  </div>
+</div>
+
+<script>
+  // 발행 엔드포인트 (이 페이지와 같은 도메인)
+  var ENDPOINT = "/api/instagram-publish";
+  var IG_PROFILE = "https://www.instagram.com/topbanker99/";
+
+  var files = [];          // { id, file, url(objectURL), name }
+  var dropEl = document.getElementById("drop");
+  var fileEl = document.getElementById("file");
+  var thumbsEl = document.getElementById("thumbs");
+  var metaEl = document.getElementById("meta");
+  var capEl = document.getElementById("caption");
+  var capMetaEl = document.getElementById("capmeta");
+  var secretEl = document.getElementById("secret");
+  var rememberEl = document.getElementById("remember");
+  var publishEl = document.getElementById("publish");
+  var statusEl = document.getElementById("status");
+
+  // 저장된 비밀키 복원
+  try {
+    var saved = localStorage.getItem("tb_publish_secret");
+    if (saved) { secretEl.value = saved; rememberEl.checked = true; }
+  } catch (e) {}
+
+  // 파일명 자연 정렬 (01, 2, 10 순서 정확히)
+  function naturalCompare(a, b) {
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+  }
+
+  function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+  function addFiles(list) {
+    var arr = Array.prototype.slice.call(list);
+    arr.forEach(function (f) {
+      if (!/^image\/(jpeg|png)$/.test(f.type)) return;
+      // 같은 이름 중복 방지
+      if (files.some(function (x) { return x.name === f.name && x.file.size === f.size; })) return;
+      files.push({ id: uid(), file: f, url: URL.createObjectURL(f), name: f.name });
+    });
+    files.sort(function (a, b) { return naturalCompare(a.name, b.name); });
+    render();
+  }
+
+  function move(id, dir) {
+    var i = files.findIndex(function (x) { return x.id === id; });
+    var j = i + dir;
+    if (i < 0 || j < 0 || j >= files.length) return;
+    var tmp = files[i]; files[i] = files[j]; files[j] = tmp;
+    render();
+  }
+
+  function remove(id) {
+    var i = files.findIndex(function (x) { return x.id === id; });
+    if (i >= 0) { URL.revokeObjectURL(files[i].url); files.splice(i, 1); render(); }
+  }
+
+  function render() {
+    thumbsEl.innerHTML = "";
+    files.forEach(function (f, idx) {
+      var div = document.createElement("div");
+      div.className = "thumb";
+      div.innerHTML =
+        '<span class="order">' + (idx + 1) + '</span>' +
+        '<img src="' + f.url + '" alt="" />' +
+        '<div class="controls">' +
+          '<button data-act="left" ' + (idx === 0 ? "disabled" : "") + '>◀</button>' +
+          '<button class="del" data-act="del">✕</button>' +
+          '<button data-act="right" ' + (idx === files.length - 1 ? "disabled" : "") + '>▶</button>' +
+        '</div>';
+      div.querySelector('[data-act="left"]').onclick = function () { move(f.id, -1); };
+      div.querySelector('[data-act="right"]').onclick = function () { move(f.id, 1); };
+      div.querySelector('[data-act="del"]').onclick = function () { remove(f.id); };
+      thumbsEl.appendChild(div);
+    });
+
+    if (files.length === 0) {
+      metaEl.textContent = "";
+    } else {
+      var totalKB = files.reduce(function (s, f) { return s + f.file.size; }, 0) / 1024;
+      var sizeText = totalKB > 1024 ? (totalKB / 1024).toFixed(1) + "MB" : Math.round(totalKB) + "KB";
+      var warn = (totalKB / 1024) > 4 ? "  ·  용량이 큽니다. 4MB 이하를 권장합니다." : "";
+      metaEl.textContent = files.length + "장 선택됨  ·  합계 " + sizeText + warn;
+    }
+  }
+
+  // 드롭존 이벤트
+  dropEl.addEventListener("click", function () { fileEl.click(); });
+  fileEl.addEventListener("change", function (e) { addFiles(e.target.files); fileEl.value = ""; });
+  ["dragenter", "dragover"].forEach(function (ev) {
+    dropEl.addEventListener(ev, function (e) { e.preventDefault(); dropEl.classList.add("over"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    dropEl.addEventListener(ev, function (e) { e.preventDefault(); dropEl.classList.remove("over"); });
+  });
+  dropEl.addEventListener("drop", function (e) {
+    if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
+  });
+
+  // 캡션 글자수
+  capEl.addEventListener("input", function () {
+    var n = capEl.value.length;
+    var tags = (capEl.value.match(/#[^\s#]+/g) || []).length;
+    capMetaEl.textContent = n + "자" + (tags ? "  ·  해시태그 " + tags + "개" : "");
+    capMetaEl.style.color = n > 2200 ? "#C0392B" : "";
+  });
+
+  function setStatus(kind, html) {
+    statusEl.className = "status show " + kind;
+    statusEl.innerHTML = html;
+  }
+
+  function fileToDataURL(file) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(r.result); };
+      r.onerror = function () { reject(new Error(file.name + " 읽기 실패")); };
+      r.readAsDataURL(file);
+    });
+  }
+
+  publishEl.addEventListener("click", function () {
+    var secret = secretEl.value.trim();
+    if (!secret) { setStatus("err", "발행 비밀키를 입력하세요."); return; }
+    if (files.length < 2 || files.length > 10) {
+      setStatus("err", "이미지는 2~10장이 필요합니다. (현재 " + files.length + "장)");
+      return;
+    }
+    if (capEl.value.length > 2200) { setStatus("err", "본문이 2,200자를 초과했습니다."); return; }
+
+    // 비밀키 저장 처리
+    try {
+      if (rememberEl.checked) localStorage.setItem("tb_publish_secret", secret);
+      else localStorage.removeItem("tb_publish_secret");
+    } catch (e) {}
+
+    publishEl.disabled = true;
+    setStatus("work", '<span class="spinner"></span>이미지를 준비하고 있습니다…');
+
+    Promise.all(files.map(function (f) {
+      return fileToDataURL(f.file).then(function (data) {
+        return { filename: f.name, data: data };
+      });
+    })).then(function (images) {
+      setStatus("work", '<span class="spinner"></span>업로드 후 인스타그램에 발행 중입니다. 최대 1분 정도 걸릴 수 있습니다…');
+      return fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-publish-secret": secret },
+        body: JSON.stringify({ caption: capEl.value, images: images }),
+      });
+    }).then(function (res) {
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (r) {
+      if (r.ok && r.data && r.data.ok) {
+        setStatus("ok",
+          "발행 완료되었습니다. (" + r.data.count + "장)<br />" +
+          '게시물 확인: <a href="' + IG_PROFILE + '" target="_blank" rel="noopener">instagram.com/topbanker99</a>'
+        );
+      } else {
+        var d = r.data || {};
+        var msg = d.error;
+        if (msg && typeof msg === "object") msg = msg.message || JSON.stringify(msg);
+        var step = d.step ? " [" + d.step + "]" : "";
+        setStatus("err", "발행 실패" + step + ": " + (msg || "알 수 없는 오류"));
+      }
+    }).catch(function (err) {
+      setStatus("err", "요청 중 오류가 발생했습니다: " + (err && err.message ? err.message : err));
+    }).then(function () {
+      publishEl.disabled = false;
+    });
+  });
+</script>
+</body>
+</html>
