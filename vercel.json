@@ -1,4 +1,6 @@
 {
+  "installCommand": "npm install",
+  "buildCommand": "echo no build needed",
   "functions": {
     "api/instagram-publish.js": {
       "maxDuration": 120
