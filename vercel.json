@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install",
+  "installCommand": "npm install @vercel/blob@2.4.0 --no-save && npm install",
   "buildCommand": "",
   "outputDirectory": ".",
   "functions": {
