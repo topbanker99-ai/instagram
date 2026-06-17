@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/instagram-publish.js": {
+      "maxDuration": 120
+    }
+  }
+}
