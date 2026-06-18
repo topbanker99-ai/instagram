@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@vercel/blob": "^2.4.0",
-    "@napi-rs/canvas": "^1.0.0"
+    "@napi-rs/canvas": "^1.0.0",
+    "ffmpeg-static": "^5.2.0"
   }
 }
