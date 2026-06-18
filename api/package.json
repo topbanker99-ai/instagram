@@ -1,9 +1,0 @@
-{
-  "name": "topbanker-instagram",
-  "version": "1.0.0",
-  "private": true,
-  "description": "탑뱅커 인스타그램 카드뉴스 자동 발행 백엔드",
-  "engines": {
-    "node": ">=18"
-  }
-}
