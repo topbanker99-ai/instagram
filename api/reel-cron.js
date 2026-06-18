@@ -156,8 +156,16 @@ function buildGlossaryScenes(term){
 async function buildReel(canvasMod, scenes){
   const { createCanvas, loadImage }=canvasMod;
   const os=require('os'), fs=require('fs'), path=require('path'), { execFileSync }=require('child_process');
-  const FFMPEG=process.env.FFMPEG_PATH || require('ffmpeg-static');
-  try{ fs.chmodSync(FFMPEG, 0o755); }catch(e){}   // Vercel 번들 시 실행권한 보정
+  let FFMPEG=process.env.FFMPEG_PATH || require('ffmpeg-static');
+  if(!process.env.FFMPEG_PATH){
+    // Vercel의 /var/task는 읽기전용 → ffmpeg 바이너리를 /tmp로 복사한 뒤 실행권한 부여
+    try{
+      const tmpBin=path.join(os.tmpdir(),'ffmpeg');
+      if(!fs.existsSync(tmpBin)) fs.copyFileSync(FFMPEG, tmpBin);
+      fs.chmodSync(tmpBin, 0o755);
+      FFMPEG=tmpBin;
+    }catch(e){ try{ fs.chmodSync(FFMPEG,0o755); }catch(_){} }
+  }
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'reel-'));
   try{
     const music=require('./reel-music.js');
