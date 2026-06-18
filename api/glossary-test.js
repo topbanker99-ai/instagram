@@ -1,8 +1,6 @@
 // api/glossary-test.js
-// [검증 전용] 서버에서 카드 1장을 그려 PNG로 반환. canvas+폰트가 Vercel에서 작동하는지 확인용.
-// 브라우저에서 /api/glossary-test 로 접속하면 카드 이미지가 보이면 성공.
-
-const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
+// [검증/진단 전용] 서버에서 카드 1장을 그려 PNG로 반환.
+// canvas 로딩이 실패하면 크래시 대신 JSON으로 정확한 원인을 반환한다(브라우저 새로고침으로 확인).
 
 const PRETENDARD_BASE = 'https://raw.githubusercontent.com/orioncactus/pretendard/main/packages/pretendard/dist/public/static/';
 const FONT_FILES = [
@@ -10,16 +8,6 @@ const FONT_FILES = [
   ['Pretendard-SemiBold.otf', 'Pretendard SemiBold'],
   ['Pretendard-Bold.otf', 'Pretendard Bold'],
 ];
-let fontsReady = false;
-async function ensureFonts() {
-  if (fontsReady) return;
-  for (const [file, name] of FONT_FILES) {
-    const r = await fetch(PRETENDARD_BASE + file);
-    if (!r.ok) throw new Error('폰트 다운로드 실패: ' + file + ' HTTP ' + r.status);
-    GlobalFonts.register(Buffer.from(await r.arrayBuffer()), name);
-  }
-  fontsReady = true;
-}
 
 const COL = {
   WHITE:'#FFFFFF', DARK:'#1D1D1F', INK:'#1D1D1F', SOFT_L:'#3C3C3E',
@@ -56,7 +44,7 @@ function trimDef(d, limit = 165) {
   return idx > limit * 0.5 ? d.slice(0, idx + 1).trim() : cut.replace(/\s+$/, '') + '…';
 }
 
-function makeCard(term, circ, page, total, dark, bg) {
+function makeCard(createCanvas, term, circ, page, total, dark, bg) {
   const W = 1080, M = 110, CW = W - 2 * M;
   const canvas = createCanvas(W, W); const ctx = canvas.getContext('2d');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, W); ctx.textBaseline = 'top';
@@ -96,8 +84,57 @@ function makeCard(term, circ, page, total, dark, bg) {
 }
 
 module.exports = async (req, res) => {
+  const steps = [];
+  const diag = {};
+  const fail = (msg, e) => {
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({
+      ok: false, error: msg,
+      detail: e ? (e.message + (e.code ? ('  [code=' + e.code + ']') : '')) : undefined,
+      steps, diag,
+      stack: e && e.stack ? e.stack.split('\n').slice(0, 8) : undefined
+    }, null, 2));
+  };
   try {
-    await ensureFonts();
+    steps.push('handler-start');
+
+    // 1) @napi-rs/canvas 로딩 (실패 시 정확한 원인 보고)
+    let canvasMod;
+    try {
+      diag.resolvedPath = require.resolve('@napi-rs/canvas');
+      steps.push('resolved');
+    } catch (e) {
+      const fs = require('fs');
+      for (const base of ['/var/task/node_modules/@napi-rs', process.cwd() + '/node_modules/@napi-rs']) {
+        try { diag['list:' + base] = fs.readdirSync(base); } catch (e2) { diag['list:' + base] = 'ERR ' + e2.message; }
+      }
+      return fail('require.resolve("@napi-rs/canvas") 실패 — 패키지 미설치(빌드 캐시) 의심', e);
+    }
+    try {
+      canvasMod = require('@napi-rs/canvas');
+      steps.push('required');
+    } catch (e) {
+      const fs = require('fs');
+      for (const base of ['/var/task/node_modules', process.cwd() + '/node_modules']) {
+        try { diag['napi:' + base] = fs.readdirSync(base).filter(x => x.indexOf('canvas') >= 0); } catch (e2) { diag['napi:' + base] = 'ERR ' + e2.message; }
+      }
+      return fail('require("@napi-rs/canvas") 로딩 중 예외 — 네이티브 바이너리(.node) 미포함 의심', e);
+    }
+
+    const { createCanvas, GlobalFonts } = canvasMod;
+    if (!createCanvas || !GlobalFonts) return fail('createCanvas/GlobalFonts 가 undefined', null);
+    steps.push('canvas-ok');
+
+    // 2) 폰트 런타임 fetch + 등록
+    for (const [file, name] of FONT_FILES) {
+      const r = await fetch(PRETENDARD_BASE + file);
+      if (!r.ok) return fail('폰트 다운로드 실패: ' + file + ' HTTP ' + r.status, null);
+      GlobalFonts.register(Buffer.from(await r.arrayBuffer()), name);
+    }
+    steps.push('fonts-registered');
+
+    // 3) 카드 렌더
     const term = {
       section: '거시경제·통화정책·경기지표',
       name: 'FED(연방준비제도)',
@@ -105,14 +142,14 @@ module.exports = async (req, res) => {
       definition: '미국의 중앙은행 시스템. 워싱턴 연준이사회(Federal Reserve Board)와 12개 지역 연방준비은행으로 구성. 통화정책·금융감독·결제시스템 운영을 담당하며 의장(현 제롬 파월)이 시장에 미치는 영향력은 절대적이다.'
     };
     const dark = (req.query && (req.query.dark === '1' || req.query.dark === 'true'));
-    const png = makeCard(term, '①', 1, 3, dark, dark ? COL.DARK : COL.WHITE);
+    const png = makeCard(createCanvas, term, '①', 1, 3, dark, dark ? COL.DARK : COL.WHITE);
+    steps.push('rendered');
+
     res.statusCode = 200;
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'no-store');
     res.end(png);
   } catch (e) {
-    res.statusCode = 500;
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.end(JSON.stringify({ error: e.message, stack: (e.stack || '').split('\n').slice(0, 4) }, null, 2));
+    return fail('예기치 못한 오류', e);
   }
 };
