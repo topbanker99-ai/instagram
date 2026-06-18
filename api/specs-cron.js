@@ -242,7 +242,12 @@ module.exports = async (req, res) => {
     }catch(e){}
     const caption=buildCaption(post);
 
-    if(dryrun) return out(200,{ok:true,dryrun:true,post:`${post.bank} · ${post.period} · ${post.group} (${post.part}/${post.parts})`,cards:totalCards,imageUrls,caption,nextWouldPublishIndex:nextPostIndex,totalPosts:total});
+    if(dryrun){
+      const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      const imgs=imageUrls.map((u,i)=>`<img src="${u}" alt="card ${i+1}" style="width:100%;border-radius:12px;margin-bottom:10px;background:#000">`).join('');
+      const html=`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>미리보기</title></head><body style="margin:0;background:#0b0b0d;color:#eaeaea;font-family:-apple-system,system-ui,sans-serif;text-align:center"><div style="max-width:480px;margin:0 auto;padding:18px"><div style="color:#2997ff;font-weight:700;font-size:16px">미리보기 (아직 발행 안 됨)</div><div style="color:#8a8a90;font-size:13px;margin:6px 0 14px">${esc(post.bank+' · '+post.period+' · '+post.group+(post.parts>1?' ('+post.part+'/'+post.parts+')':''))}</div>${imgs}<div style="background:#16161a;border-radius:12px;padding:14px;margin-top:8px;font-size:14px;line-height:1.5">마음에 들면 → 주소창에서 <b style="color:#fff">&amp;dryrun=1</b> 을 지우고 다시 접속하면 <b style="color:#2997ff">실제로 발행</b>됩니다.</div><details style="margin-top:14px;text-align:left"><summary style="color:#8a8a90;font-size:12px;cursor:pointer">캡션 보기</summary><pre style="white-space:pre-wrap;background:#111;padding:12px;border-radius:8px;font-size:12px;color:#bbb">${esc(caption)}</pre></details></div></body></html>`;
+      res.statusCode=200; res.setHeader('Content-Type','text/html; charset=utf-8'); res.end(html); return;
+    }
 
     const mediaId=await publishCarousel(imageUrls, caption);
     const next=(nextPostIndex+1)%total;

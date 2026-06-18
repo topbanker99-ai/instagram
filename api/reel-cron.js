@@ -286,7 +286,11 @@ module.exports = async (req, res) => {
     const blob=await put(`reels/${Date.now()}.mp4`, mp4, {access:'public',contentType:'video/mp4',addRandomSuffix:true,token:process.env.BLOB_READ_WRITE_TOKEN});
     const videoUrl=blob.url;
 
-    if(dryrun) return out(200,{ok:true,dryrun:true,kind,label,videoUrl,sizeKB:Math.round(mp4.length/1024),caption});
+    if(dryrun){
+      const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      const html=`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>미리보기</title></head><body style="margin:0;background:#0b0b0d;color:#eaeaea;font-family:-apple-system,system-ui,sans-serif;text-align:center"><div style="max-width:520px;margin:0 auto;padding:18px"><div style="color:#2997ff;font-weight:700;font-size:16px">▶ 미리보기 (아직 발행 안 됨)</div><div style="color:#8a8a90;font-size:13px;margin:6px 0 14px">${esc(kind==='spec'?'스펙 릴스':'상식 릴스')} · ${esc(label)}</div><video src="${videoUrl}" controls autoplay muted playsinline loop style="width:100%;border-radius:14px;background:#000"></video><div style="color:#9a9aa0;font-size:12px;margin-top:8px">소리가 안 나면 영상의 음소거(🔇) 아이콘을 눌러 해제하세요.</div><div style="background:#16161a;border-radius:12px;padding:14px;margin-top:16px;font-size:14px;line-height:1.5">마음에 들면 → 지금 주소창에서 <b style="color:#fff">&amp;dryrun=1</b> 을 지우고 다시 접속하면 <b style="color:#2997ff">실제로 발행</b>됩니다.</div><details style="margin-top:14px;text-align:left"><summary style="color:#8a8a90;font-size:12px;cursor:pointer">캡션 보기</summary><pre style="white-space:pre-wrap;background:#111;padding:12px;border-radius:8px;font-size:12px;color:#bbb">${esc(caption)}</pre></details></div></body></html>`;
+      res.statusCode=200; res.setHeader('Content-Type','text/html; charset=utf-8'); res.end(html); return;
+    }
 
     const mediaId=await publishReel(videoUrl, caption);
     // 진도 갱신 + 종류 교대
