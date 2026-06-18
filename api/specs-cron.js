@@ -15,6 +15,7 @@
 // 의존: ./blob-bundle.js, ./specs.json, @napi-rs/canvas
 
 const { put, list } = require('./blob-bundle.js');
+const { buildTags } = require('./hashtags.js');
 const SPECS = require('./specs.json');
 let OUTRO=null; try{ OUTRO=require('./outro-image.js'); }catch(e){}   // 없어도 크래시 안 나도록
 
@@ -161,7 +162,7 @@ async function writeProgress(nextPostIndex){
 function buildCaption(post){
   const partTxt=post.parts>1?` (${post.part}/${post.parts})`:'';
   const bankTag='#'+post.bank.replace(/\s/g,'');
-  const tags=`#은행취업 #은행권취업 #금융권취업 #은행합격 #합격스펙 #은행스펙 #은행자소서 #은행필기 #은행면접 ${bankTag} #국민은행 #신한은행 #우리은행 #하나은행 #기업은행 #농협은행 #취업준비 #취준생 #스펙 #자기소개서 #은행원 #금융공기업 #입행 #탑뱅커 #은행취업컨설팅`;
+  const tags = buildTags('specs', { bank: bankTag });
   return `[은행권 합격자 스펙 — ${post.bank}]\n${post.period} · ${post.group}${partTxt}\n\n해당 전형 합격자 ${post.groupCount}명의 학교 · 학점 · 어학 · 자격증 · 인턴/경력을 정리했습니다.\n캡처해두고 본인 스펙과 비교해보세요. 자소서 · 필기 · 면접 준비는 프로필 링크에서.\n\n${tags}`;
 }
 

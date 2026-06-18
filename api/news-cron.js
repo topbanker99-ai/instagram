@@ -16,6 +16,7 @@
 // 의존: ./blob-bundle.js, ./outro-image.js, @napi-rs/canvas
 
 const { put, list } = require('./blob-bundle.js');
+const { buildTags } = require('./hashtags.js');
 let OUTRO=null; try{ OUTRO=require('./outro-image.js'); }catch(e){}
 
 const NEWS_URL = 'https://topbanker-ai.co.kr/api/news-feed';
@@ -145,7 +146,7 @@ function buildCaption(arts){
   const lines=arts.map((a,i)=>{ const q=clean(a.ai_comment).replace(/^예상\s*질문\s*[:：]\s*/,''); return `${CIRC[i]} ${clean(a.title)}\n   예상 질문: ${q}`; }).join('\n\n');
   const links=arts.map(a=>clean(a.link)).filter(Boolean);
   const linkBlock=links.length?`\n\n🔗 원문\n${links.join('\n')}`:'';
-  const tags='#은행면접 #금융권면접 #면접시사 #시사상식 #금융뉴스 #은행취업 #금융권취업 #면접질문 #면접예상질문 #면접준비 #경제이슈 #한국은행 #은행권 #취업준비 #취준생 #자기소개서 #NCS #은행필기 #탑뱅커 #면접대비';
+  const tags = buildTags('news');
   return `[면접관이 묻는다 — 이번 주 출제 예상 시사]\n은행·금융권 면접에서 나올 수 있는 핵심 이슈 ${arts.length}가지와 예상 질문을 정리했습니다. 캡처해두고 면접 전 답변을 미리 정리해보세요.\n\n${lines}${linkBlock}\n\n${tags}`;
 }
 

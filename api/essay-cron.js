@@ -10,6 +10,7 @@
 // 의존: ./blob-bundle.js, ./essays.json, @napi-rs/canvas
 
 const { put, list } = require('./blob-bundle.js');
+const { buildTags } = require('./hashtags.js');
 const ESSAYS = require('./essays.json');
 
 const API_VERSION = 'v23.0';
@@ -147,7 +148,7 @@ async function writeNext(n){
 /* ───────── 캡션 ───────── */
 function buildCaption(it){
   const tagInst='#'+clean(it.inst).replace(/\s+/g,'');
-  const tags=`${tagInst} #은행논술 #금융공기업논술 #논술기출 #논술준비 #금융논술 #공기업논술 #필기시험 #논술작성법 #시사논술 #경제논술 #논술예상문제 #은행취업 #금융권취업 #자기소개서 #면접준비 #취업준비 #취준생 #탑뱅커`;
+  const tags = buildTags('essay', { inst: tagInst });
   return `[이주의 논술 기출] ${clean(it.inst)} · ${clean(it.year)} ${clean(it.type)}\n\n${clean(it.topic)}\n\n은행·금융공기업 논술·약술 기출입니다. 출제 배경과 문항을 카드에서 확인하고, 직접 답안 개요를 잡아보세요.\n\n✍️ 논술 출제 예상문제 풀이와 작성방법은 탑뱅커 AI(${SITE}) 또는 프로필 링크에서!\n\n${tags}`;
 }
 

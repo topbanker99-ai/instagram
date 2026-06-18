@@ -11,6 +11,7 @@
 // 의존: ./blob-bundle.js, ./glossary.json, @napi-rs/canvas
 
 const { put, list } = require('./blob-bundle.js');
+const { buildTags } = require('./hashtags.js');
 const TERMS = require('./glossary.json');
 let OUTRO=null; try{ OUTRO=require('./outro-image.js'); }catch(e){}   // 없어도 크래시 안 나도록
 
@@ -102,7 +103,7 @@ async function writeProgress(nextIndex){
 /* ───────── 캡션 ───────── */
 function buildCaption(picks){
   const lines = picks.map((t,i)=>`${CIRC[i]} ${t.name}`).join('\n');
-  const tags = '#은행취업 #금융권취업 #은행권 #금융상식 #경제상식 #금융용어 #경제용어 #NCS #농협은행 #신한은행 #국민은행 #우리은행 #하나은행 #기업은행 #한국은행 #은행원 #취업준비 #취준생 #자기소개서 #필기시험 #금융권채용 #은행시험 #공기업 #탑뱅커 #금융지식';
+  const tags = buildTags('glossary');
   return `[오늘의 은행권·금융권 기출 빈출 상식]\n\n${lines}\n\n매주 월·수·금, 시험에 자주 나오는 금융·경제 상식을 카드뉴스로 정리합니다.\n캡처해두고 복습하세요.\n\n${tags}`;
 }
 

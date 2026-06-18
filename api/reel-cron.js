@@ -15,6 +15,7 @@
 // 의존: ./blob-bundle.js, ./specs.json, ./glossary.json, ./reel-music.js, @napi-rs/canvas, ffmpeg-static
 
 const { put, list } = require('./blob-bundle.js');
+const { buildTags } = require('./hashtags.js');
 const SPECS = require('./specs.json');
 const TERMS = require('./glossary.json');
 let OUTRO=null; try{ OUTRO=require('./outro-image.js'); }catch(e){}   // 없어도 크래시 안 나도록
@@ -228,10 +229,10 @@ async function writeProgress(p){
 /* ───────── 캡션 ───────── */
 function specCaption(post){
   const tag='#'+post.bank.replace(/\s/g,'');
-  return `[합격자 스펙 — ${post.bank}] ${post.period} · ${post.group}\n\n이 스펙으로 합격했습니다. 학교 · 학점 · 어학 · 자격증 · 경력 전부 공개.\n전체 합격 스펙은 프로필(@topbanker99)에서 확인하세요. 자소서 · 필기 · 면접 준비도 함께.\n\n#은행취업 #은행권취업 #금융권취업 #은행합격 #합격스펙 #은행스펙 ${tag} #국민은행 #신한은행 #우리은행 #하나은행 #기업은행 #농협은행 #취업준비 #취준생 #자기소개서 #은행면접 #은행필기 #입행 #탑뱅커 #릴스`;
+  return `[합격자 스펙 — ${post.bank}] ${post.period} · ${post.group}\n\n이 스펙으로 합격했습니다. 학교 · 학점 · 어학 · 자격증 · 경력 전부 공개.\n전체 합격 스펙은 프로필(@topbanker99)에서 확인하세요. 자소서 · 필기 · 면접 준비도 함께.\n\n${buildTags('reel_spec', { bank: tag })}`;
 }
 function glossaryCaption(term){
-  return `[은행 면접 필수 금융상식] ${term.name}\n\n면접 · 필기에 자주 나오는 핵심 개념을 30초로 정리했습니다.\n매주 월 · 수 · 금 금융상식 업데이트 — @topbanker99\n\n#은행취업 #금융권취업 #금융상식 #경제상식 #금융용어 #NCS #은행필기 #은행면접 #국민은행 #신한은행 #우리은행 #하나은행 #기업은행 #농협은행 #한국은행 #취업준비 #취준생 #자기소개서 #금융지식 #탑뱅커 #릴스`;
+  return `[은행 면접 필수 금융상식] ${term.name}\n\n면접 · 필기에 자주 나오는 핵심 개념을 30초로 정리했습니다.\n매주 월 · 수 · 금 금융상식 업데이트 — @topbanker99\n\n${buildTags('reel_glossary')}`;
 }
 
 /* ───────── 릴스 발행 (instagram-reel.js와 동일 플로우) ───────── */
