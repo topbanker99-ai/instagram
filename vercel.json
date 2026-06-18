@@ -1,6 +1,7 @@
 {
   "buildCommand": "",
   "outputDirectory": ".",
+  "installCommand": "npm install @napi-rs/canvas@1.0.0 @vercel/blob@2.4.0 --include=optional --no-audit --no-fund",
   "functions": {
     "api/instagram-publish.js": { "maxDuration": 120 },
     "api/instagram-reel.js": { "maxDuration": 250 },
