@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>탑뱅커 · 인스타그램 카드뉴스 발행</title>
+<title>탑뱅커 · 카드뉴스 발행 & 쇼츠 제작</title>
 <style>
   :root {
     --navy: #1B3A5C;
@@ -18,22 +18,18 @@
   }
   * { box-sizing: border-box; }
   html, body {
-    margin: 0; padding: 0;
-    background: var(--offwhite);
-    color: var(--navy);
+    margin: 0; padding: 0; background: var(--offwhite); color: var(--navy);
     font-family: -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 660px; margin: 0 auto; padding: 40px 20px 80px; }
 
-  /* Header */
   .topline { height: 4px; background: var(--gold); border-radius: 2px; }
   header { padding: 26px 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
   .brand { font-size: 13px; letter-spacing: 3px; color: var(--gold); font-weight: 700; text-transform: uppercase; }
   h1 { font-size: 26px; margin: 8px 0 4px; font-weight: 800; letter-spacing: -0.4px; }
   .sub { color: var(--muted); font-size: 14px; margin: 0; }
 
-  /* Sections */
   .field { margin-bottom: 24px; }
   .label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
   .hint { color: var(--muted); font-size: 12px; font-weight: 400; }
@@ -49,11 +45,19 @@
   .remember { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
   .remember input { width: 16px; height: 16px; accent-color: var(--teal); }
 
-  /* Dropzone */
-  .drop {
-    border: 2px dashed var(--line); border-radius: 14px; background: var(--white);
-    padding: 34px 20px; text-align: center; cursor: pointer; transition: all .15s;
+  /* Option pills (video) */
+  .opts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .opt {
+    border: 1px solid var(--line); background: var(--white); color: var(--navy);
+    border-radius: 9px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all .12s; font-family: inherit;
   }
+  .opt:hover { border-color: var(--teal); }
+  .opt.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+  /* Dropzone */
+  .drop { border: 2px dashed var(--line); border-radius: 14px; background: var(--white);
+    padding: 34px 20px; text-align: center; cursor: pointer; transition: all .15s; }
   .drop:hover { border-color: var(--teal); background: #FBFDFE; }
   .drop.over { border-color: var(--gold); background: #FFFDF6; }
   .drop .big { font-size: 15px; font-weight: 700; }
@@ -62,53 +66,72 @@
 
   /* Thumbnails */
   .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
-  .thumb {
-    position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
-    background: var(--white); aspect-ratio: 1 / 1;
-  }
+  .thumb { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    background: var(--white); aspect-ratio: 1 / 1; }
   .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .thumb .order {
-    position: absolute; top: 6px; left: 6px; min-width: 22px; height: 22px; padding: 0 6px;
-    background: var(--navy); color: #fff; font-size: 12px; font-weight: 700;
-    border-radius: 6px; display: flex; align-items: center; justify-content: center;
-  }
+  .thumb .order { position: absolute; top: 6px; left: 6px; min-width: 22px; height: 22px; padding: 0 6px;
+    background: var(--navy); color: #fff; font-size: 12px; font-weight: 700; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; }
   .thumb .controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; }
-  .thumb .controls button {
-    flex: 1; border: none; background: rgba(27,58,92,.86); color: #fff; font-size: 13px;
-    padding: 5px 0; cursor: pointer;
-  }
+  .thumb .controls button { flex: 1; border: none; background: rgba(27,58,92,.86); color: #fff;
+    font-size: 13px; padding: 5px 0; cursor: pointer; }
   .thumb .controls button:hover { background: var(--navy); }
   .thumb .controls .del { background: rgba(192,57,43,.86); }
   .thumb .controls .del:hover { background: var(--danger); }
   .thumb .controls button:disabled { opacity: .35; cursor: default; }
-
   .meta { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
 
-  /* Button */
+  /* Buttons */
   .actions { margin-top: 30px; }
-  .btn {
-    width: 100%; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 800;
-    cursor: pointer; background: var(--navy); color: #fff; letter-spacing: .3px; transition: background .15s;
-  }
+  .btn { width: 100%; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 800;
+    cursor: pointer; background: var(--navy); color: #fff; letter-spacing: .3px; transition: background .15s; }
   .btn:hover:not(:disabled) { background: #14304d; }
   .btn:disabled { background: #9AA8B8; cursor: default; }
   .btn .accent { color: var(--gold); }
+  .btn.secondary { background: var(--white); color: var(--navy); border: 1px solid var(--line); margin-bottom: 12px; }
+  .btn.secondary:hover:not(:disabled) { border-color: var(--teal); background: #FBFDFE; }
 
-  /* Status */
+  /* Publish status */
   .status { margin-top: 22px; border-radius: 12px; padding: 16px 18px; font-size: 14px; line-height: 1.55; display: none; }
   .status.show { display: block; }
   .status.work { background: #EEF6F6; border: 1px solid #CDE6E6; color: #1E5E5E; }
   .status.ok   { background: #ECF7F2; border: 1px solid #BFE6D5; color: #1B6B4A; }
   .status.err  { background: #FCEDEC; border: 1px solid #F2C6C2; color: #8A2A20; }
   .status a { color: inherit; font-weight: 700; }
-  .spinner {
-    display: inline-block; width: 14px; height: 14px; border: 2px solid #BcdbdB;
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #BCDBDB;
     border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite;
-    vertical-align: -2px; margin-right: 8px;
-  }
+    vertical-align: -2px; margin-right: 8px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .footnote { margin-top: 34px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; }
+  /* Section divider */
+  .divider { display: flex; align-items: center; gap: 14px; margin: 40px 0 26px; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .divider span { font-size: 13px; font-weight: 700; color: var(--gold); letter-spacing: 1px; white-space: nowrap; }
+
+  /* Video preview */
+  .preview-wrap { display: flex; justify-content: center; margin: 8px 0 4px; }
+  #canvas { width: 240px; height: 427px; border-radius: 14px; background: var(--navy);
+    border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(27,58,92,.12); display: block; }
+
+  /* Video progress */
+  .progress { margin-top: 18px; display: none; }
+  .progress.show { display: block; }
+  .bar { height: 10px; background: var(--line); border-radius: 6px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0%; background: var(--teal); transition: width .1s linear; }
+  .ptext { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
+
+  /* Video result */
+  .result { margin-top: 20px; border-radius: 12px; padding: 18px; display: none;
+    background: #ECF7F2; border: 1px solid #BFE6D5; color: #1B6B4A; }
+  .result.show { display: block; }
+  .result a.dl { display: inline-block; margin-top: 10px; background: var(--navy); color: #fff;
+    text-decoration: none; padding: 11px 18px; border-radius: 10px; font-weight: 700; font-size: 14px; }
+  .result a.dl:hover { background: #14304d; }
+  .errbox { margin-top: 18px; border-radius: 12px; padding: 14px 16px; font-size: 14px;
+    background: #FCEDEC; border: 1px solid #F2C6C2; color: #8A2A20; display: none; }
+  .errbox.show { display: block; }
+
+  .footnote { margin-top: 34px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.7; }
 </style>
 </head>
 <body>
@@ -116,18 +139,20 @@
 <div class="wrap">
   <header>
     <div class="brand">탑뱅커</div>
-    <h1>인스타그램 카드뉴스 발행</h1>
-    <p class="sub">이미지를 올리고 본문을 입력한 뒤 발행하면, 캐러셀로 자동 게시됩니다.</p>
+    <h1>카드뉴스 발행 &amp; 쇼츠 제작</h1>
+    <p class="sub">이미지를 한 번 올리면, 인스타그램 발행과 유튜브 쇼츠 영상 제작을 한 곳에서 할 수 있습니다.</p>
   </header>
 
+  <!-- 공유: 비밀키 -->
   <div class="field">
-    <label class="label" for="secret">발행 비밀키 <span class="hint">— Vercel에 등록한 PUBLISH_SECRET</span></label>
+    <label class="label" for="secret">발행 비밀키 <span class="hint">— Vercel에 등록한 PUBLISH_SECRET (인스타 발행에만 사용)</span></label>
     <input type="password" id="secret" placeholder="비밀키 입력" autocomplete="off" />
     <label class="remember"><input type="checkbox" id="remember" /> 이 브라우저에 비밀키 저장</label>
   </div>
 
+  <!-- 공유: 이미지 -->
   <div class="field">
-    <label class="label">카드뉴스 이미지 <span class="hint">— 2~10장 (JPG·PNG), 파일명 순서대로 게시</span></label>
+    <label class="label">카드뉴스 이미지 <span class="hint">— 2~15장 (JPG·PNG), 파일명 순서대로</span></label>
     <div class="drop" id="drop">
       <span class="mark">▲</span>
       <div class="big">이미지를 끌어다 놓거나 클릭해서 선택</div>
@@ -138,8 +163,9 @@
     <div class="meta" id="meta"></div>
   </div>
 
+  <!-- 인스타 발행 -->
   <div class="field">
-    <label class="label" for="caption">본문 <span class="hint">— 캡션 · 해시태그 (최대 2,200자)</span></label>
+    <label class="label" for="caption">본문 <span class="hint">— 인스타 캡션 · 해시태그 (최대 2,200자)</span></label>
     <textarea id="caption" placeholder="본문 내용과 해시태그를 입력하세요."></textarea>
     <div class="meta" id="capmeta">0자</div>
   </div>
@@ -147,21 +173,71 @@
   <div class="actions">
     <button class="btn" id="publish">인스타그램에 <span class="accent">발행</span></button>
   </div>
-
   <div class="status" id="status"></div>
 
+  <!-- 구분선 -->
+  <div class="divider"><span>같은 이미지로 유튜브 쇼츠 만들기</span></div>
+
+  <!-- 쇼츠 옵션 -->
+  <div class="field">
+    <label class="label">카드 한 장당 노출 시간</label>
+    <div class="opts" id="durOpts">
+      <button class="opt" data-dur="2000">2초</button>
+      <button class="opt active" data-dur="3000">3초</button>
+      <button class="opt" data-dur="4000">4초</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">전환 효과</label>
+    <div class="opts" id="fadeOpts">
+      <button class="opt active" data-fade="500">부드러운 페이드</button>
+      <button class="opt" data-fade="0">없음 (바로 전환)</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">배경 <span class="hint">— 정사각 카드를 세로 화면에 채울 방식</span></label>
+    <div class="opts" id="bgOpts">
+      <button class="opt active" data-bg="blur">이미지 흐림</button>
+      <button class="opt" data-bg="navy">네이비</button>
+      <button class="opt" data-bg="white">흰색</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">미리보기</label>
+    <div class="preview-wrap">
+      <canvas id="canvas" width="1080" height="1920"></canvas>
+    </div>
+  </div>
+
+  <button class="btn secondary" id="previewBtn">미리보기 재생</button>
+  <button class="btn" id="makeBtn">쇼츠 <span class="accent">영상 만들기</span></button>
+
+  <div class="progress" id="progress">
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="ptext" id="ptext">영상을 만드는 중입니다…</div>
+  </div>
+  <div class="result" id="result"></div>
+  <div class="errbox" id="errbox"></div>
+
   <div class="footnote">
-    발행 후 <strong>instagram.com/topbanker99</strong> 에서 게시물을 확인하세요.<br />
-    이미지는 Vercel Blob에 저장된 뒤 인스타그램에 전달됩니다.
+    인스타 발행 후 <strong>instagram.com/topbanker99</strong> 에서 게시물을 확인하세요.<br />
+    쇼츠 영상은 실시간 녹화 방식이라 길이만큼 시간이 걸리며, MP4 또는 WEBM으로 저장됩니다(유튜브는 둘 다 업로드 가능).
   </div>
 </div>
 
 <script>
-  // 발행 엔드포인트 (이 페이지와 같은 도메인)
   var ENDPOINT = "/api/instagram-publish";
   var IG_PROFILE = "https://www.instagram.com/topbanker99/";
 
-  var files = [];          // { id, file, url(objectURL), name }
+  var files = [];                                  // { id, file, url, name, imgEl }
+  var settings = { dur: 3000, fade: 500, bg: 'blur' };
+  var W = 1080, H = 1920;
+  var busy = false;                                // 영상 작업 중 잠금
+
+  // DOM (공유/발행)
   var dropEl = document.getElementById("drop");
   var fileEl = document.getElementById("file");
   var thumbsEl = document.getElementById("thumbs");
@@ -173,42 +249,73 @@
   var publishEl = document.getElementById("publish");
   var statusEl = document.getElementById("status");
 
+  // DOM (영상)
+  var canvas = document.getElementById("canvas");
+  var ctx = canvas.getContext("2d");
+  var makeBtn = document.getElementById("makeBtn");
+  var previewBtn = document.getElementById("previewBtn");
+  var progressEl = document.getElementById("progress");
+  var barFill = document.getElementById("barFill");
+  var ptext = document.getElementById("ptext");
+  var resultEl = document.getElementById("result");
+  var errbox = document.getElementById("errbox");
+
   // 저장된 비밀키 복원
   try {
     var saved = localStorage.getItem("tb_publish_secret");
     if (saved) { secretEl.value = saved; rememberEl.checked = true; }
   } catch (e) {}
 
-  // 파일명 자연 정렬 (01, 2, 10 순서 정확히)
-  function naturalCompare(a, b) {
-    return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
-  }
-
+  function naturalCompare(a, b) { return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }); }
   function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 
+  // ---- 파일 추가 (이미지 엘리먼트까지 로드) ----
   function addFiles(list) {
+    if (busy) return;
     var arr = Array.prototype.slice.call(list);
+    var loads = [];
     arr.forEach(function (f) {
       if (!/^image\/(jpeg|png)$/.test(f.type)) return;
-      // 같은 이름 중복 방지
       if (files.some(function (x) { return x.name === f.name && x.file.size === f.size; })) return;
-      files.push({ id: uid(), file: f, url: URL.createObjectURL(f), name: f.name });
+      var url = URL.createObjectURL(f);
+      var img = new Image();
+      var rec = { id: uid(), file: f, url: url, name: f.name, imgEl: img };
+      files.push(rec);
+      loads.push(new Promise(function (res) {
+        img.onload = function () { res(); };
+        img.onerror = function () { res(); };
+        img.src = url;
+      }));
     });
-    files.sort(function (a, b) { return naturalCompare(a.name, b.name); });
-    render();
+    Promise.all(loads).then(function () {
+      files.sort(function (a, b) { return naturalCompare(a.name, b.name); });
+      render();
+    });
   }
 
   function move(id, dir) {
+    if (busy) return;
     var i = files.findIndex(function (x) { return x.id === id; });
     var j = i + dir;
     if (i < 0 || j < 0 || j >= files.length) return;
-    var tmp = files[i]; files[i] = files[j]; files[j] = tmp;
+    var t = files[i]; files[i] = files[j]; files[j] = t;
     render();
   }
-
   function remove(id) {
+    if (busy) return;
     var i = files.findIndex(function (x) { return x.id === id; });
     if (i >= 0) { URL.revokeObjectURL(files[i].url); files.splice(i, 1); render(); }
+  }
+
+  function updateMeta() {
+    if (files.length === 0) { metaEl.textContent = ""; return; }
+    var totalKB = files.reduce(function (s, f) { return s + f.file.size; }, 0) / 1024;
+    var sizeText = totalKB > 1024 ? (totalKB / 1024).toFixed(1) + "MB" : Math.round(totalKB) + "KB";
+    var holdTotal = files.length * settings.dur;
+    var fadeTotal = settings.fade > 0 ? (files.length - 1) * settings.fade : 0;
+    var secs = ((holdTotal + fadeTotal) / 1000).toFixed(1);
+    var warn = (totalKB / 1024) > 4 ? "  ·  발행 시 4MB 이하 권장" : "";
+    metaEl.textContent = files.length + "장 선택됨  ·  합계 " + sizeText + "  ·  쇼츠 길이 약 " + secs + "초" + warn;
   }
 
   function render() {
@@ -229,19 +336,12 @@
       div.querySelector('[data-act="del"]').onclick = function () { remove(f.id); };
       thumbsEl.appendChild(div);
     });
-
-    if (files.length === 0) {
-      metaEl.textContent = "";
-    } else {
-      var totalKB = files.reduce(function (s, f) { return s + f.file.size; }, 0) / 1024;
-      var sizeText = totalKB > 1024 ? (totalKB / 1024).toFixed(1) + "MB" : Math.round(totalKB) + "KB";
-      var warn = (totalKB / 1024) > 4 ? "  ·  용량이 큽니다. 4MB 이하를 권장합니다." : "";
-      metaEl.textContent = files.length + "장 선택됨  ·  합계 " + sizeText + warn;
-    }
+    updateMeta();
+    drawStatic();
   }
 
-  // 드롭존 이벤트
-  dropEl.addEventListener("click", function () { fileEl.click(); });
+  // 드롭존
+  dropEl.addEventListener("click", function () { if (!busy) fileEl.click(); });
   fileEl.addEventListener("change", function (e) { addFiles(e.target.files); fileEl.value = ""; });
   ["dragenter", "dragover"].forEach(function (ev) {
     dropEl.addEventListener(ev, function (e) { e.preventDefault(); dropEl.classList.add("over"); });
@@ -261,10 +361,8 @@
     capMetaEl.style.color = n > 2200 ? "#C0392B" : "";
   });
 
-  function setStatus(kind, html) {
-    statusEl.className = "status show " + kind;
-    statusEl.innerHTML = html;
-  }
+  // ===== 인스타 발행 =====
+  function setStatus(kind, html) { statusEl.className = "status show " + kind; statusEl.innerHTML = html; }
 
   function fileToDataURL(file) {
     return new Promise(function (resolve, reject) {
@@ -276,15 +374,15 @@
   }
 
   publishEl.addEventListener("click", function () {
+    if (busy) return;
     var secret = secretEl.value.trim();
     if (!secret) { setStatus("err", "발행 비밀키를 입력하세요."); return; }
     if (files.length < 2 || files.length > 10) {
-      setStatus("err", "이미지는 2~10장이 필요합니다. (현재 " + files.length + "장)");
+      setStatus("err", "인스타 발행은 이미지 2~10장이 필요합니다. (현재 " + files.length + "장)");
       return;
     }
     if (capEl.value.length > 2200) { setStatus("err", "본문이 2,200자를 초과했습니다."); return; }
 
-    // 비밀키 저장 처리
     try {
       if (rememberEl.checked) localStorage.setItem("tb_publish_secret", secret);
       else localStorage.removeItem("tb_publish_secret");
@@ -294,9 +392,7 @@
     setStatus("work", '<span class="spinner"></span>이미지를 준비하고 있습니다…');
 
     Promise.all(files.map(function (f) {
-      return fileToDataURL(f.file).then(function (data) {
-        return { filename: f.name, data: data };
-      });
+      return fileToDataURL(f.file).then(function (data) { return { filename: f.name, data: data }; });
     })).then(function (images) {
       setStatus("work", '<span class="spinner"></span>업로드 후 인스타그램에 발행 중입니다. 최대 1분 정도 걸릴 수 있습니다…');
       return fetch(ENDPOINT, {
@@ -325,6 +421,221 @@
       publishEl.disabled = false;
     });
   });
+
+  // ===== 쇼츠 영상 =====
+  function wireOpts(containerId, key, parse) {
+    var el = document.getElementById(containerId);
+    el.querySelectorAll('.opt').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (busy) return;
+        el.querySelectorAll('.opt').forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active');
+        settings[key] = parse(b);
+        updateMeta();
+        drawStatic();
+      });
+    });
+  }
+  wireOpts('durOpts', 'dur', function (b) { return parseInt(b.dataset.dur, 10); });
+  wireOpts('fadeOpts', 'fade', function (b) { return parseInt(b.dataset.fade, 10); });
+  wireOpts('bgOpts', 'bg', function (b) { return b.dataset.bg; });
+
+  function fit(iw, ih, tw, th, mode) {
+    var ir = iw / ih, tr = tw / th, w, h;
+    if (mode === 'cover') { if (ir > tr) { h = th; w = th * ir; } else { w = tw; h = tw / ir; } }
+    else { if (ir > tr) { w = tw; h = tw / ir; } else { h = th; w = th * ir; } }
+    return { w: w, h: h, x: (tw - w) / 2, y: (th - h) / 2 };
+  }
+  function roundRectPath(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function renderSlide(img) {
+    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    var x = c.getContext('2d');
+    var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+
+    if (settings.bg === 'white') { x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, W, H); }
+    else if (settings.bg === 'navy') { x.fillStyle = '#1B3A5C'; x.fillRect(0, 0, W, H); }
+    else {
+      x.fillStyle = '#1B3A5C'; x.fillRect(0, 0, W, H);
+      try {
+        x.save();
+        x.filter = 'blur(36px) brightness(0.55)';
+        var bf = fit(iw, ih, W, H, 'cover');
+        x.drawImage(img, bf.x, bf.y, bf.w, bf.h);
+        x.restore();
+      } catch (e) {}
+    }
+
+    var margin = 24;
+    var f = fit(iw, ih, W - margin * 2, H - margin * 2, 'contain');
+    var cardX = (W - f.w) / 2, cardY = (H - f.h) / 2, radius = 26;
+
+    x.save();
+    x.shadowColor = 'rgba(0,0,0,0.35)'; x.shadowBlur = 40; x.shadowOffsetY = 10;
+    roundRectPath(x, cardX, cardY, f.w, f.h, radius);
+    x.fillStyle = '#000'; x.fill();
+    x.restore();
+
+    x.save();
+    roundRectPath(x, cardX, cardY, f.w, f.h, radius);
+    x.clip();
+    x.drawImage(img, cardX, cardY, f.w, f.h);
+    x.restore();
+    return c;
+  }
+
+  function drawStatic() {
+    ctx.fillStyle = settings.bg === 'white' ? '#FFFFFF' : '#1B3A5C';
+    ctx.fillRect(0, 0, W, H);
+    if (files.length > 0 && files[0].imgEl && files[0].imgEl.complete && (files[0].imgEl.naturalWidth || 0) > 0) {
+      ctx.drawImage(renderSlide(files[0].imgEl), 0, 0);
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '46px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('미리보기', W / 2, H / 2);
+    }
+  }
+
+  function buildSegments(n) {
+    var segs = [];
+    for (var i = 0; i < n; i++) {
+      segs.push({ type: 'hold', i: i, dur: settings.dur });
+      if (i < n - 1 && settings.fade > 0) segs.push({ type: 'fade', from: i, to: i + 1, dur: settings.fade });
+    }
+    return segs;
+  }
+  function prerenderAll() { return files.map(function (f) { return renderSlide(f.imgEl); }); }
+  function showErr(msg) { errbox.className = 'errbox show'; errbox.textContent = msg; }
+  function clearErr() { errbox.className = 'errbox'; errbox.textContent = ''; }
+
+  function runTimeline(slides, opts) {
+    return new Promise(function (resolve) {
+      var segs = buildSegments(slides.length);
+      var total = segs.reduce(function (s, x) { return s + x.dur; }, 0);
+      var start = performance.now();
+      function frame(now) {
+        var t = now - start; if (t >= total) t = total - 1;
+        var acc = 0, drawn = false;
+        for (var k = 0; k < segs.length; k++) {
+          var s = segs[k];
+          if (t < acc + s.dur) {
+            ctx.fillStyle = settings.bg === 'white' ? '#FFFFFF' : '#1B3A5C';
+            ctx.fillRect(0, 0, W, H);
+            if (s.type === 'hold') { ctx.globalAlpha = 1; ctx.drawImage(slides[s.i], 0, 0); }
+            else {
+              var p = (t - acc) / s.dur;
+              ctx.globalAlpha = 1; ctx.drawImage(slides[s.from], 0, 0);
+              ctx.globalAlpha = p; ctx.drawImage(slides[s.to], 0, 0);
+              ctx.globalAlpha = 1;
+            }
+            drawn = true; break;
+          }
+          acc += s.dur;
+        }
+        if (!drawn) { ctx.globalAlpha = 1; ctx.drawImage(slides[slides.length - 1], 0, 0); }
+        if (opts && opts.onProgress) opts.onProgress(Math.min(1, (now - start) / total));
+        if (now - start < total) { requestAnimationFrame(frame); }
+        else {
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = settings.bg === 'white' ? '#FFFFFF' : '#1B3A5C';
+          ctx.fillRect(0, 0, W, H);
+          ctx.drawImage(slides[slides.length - 1], 0, 0);
+          resolve();
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  previewBtn.addEventListener('click', function () {
+    if (busy) return;
+    clearErr();
+    if (files.length < 1) { showErr('이미지를 먼저 추가하세요.'); return; }
+    busy = true; previewBtn.disabled = true; makeBtn.disabled = true; publishEl.disabled = true;
+    var slides = prerenderAll();
+    runTimeline(slides, null).then(function () {
+      busy = false; previewBtn.disabled = false; makeBtn.disabled = false; publishEl.disabled = false;
+      drawStatic();
+    });
+  });
+
+  function pickMime() {
+    var cands = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    for (var i = 0; i < cands.length; i++) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(cands[i])) return cands[i];
+    }
+    return '';
+  }
+
+  makeBtn.addEventListener('click', function () {
+    if (busy) return;
+    clearErr();
+    resultEl.className = 'result'; resultEl.innerHTML = '';
+    if (files.length < 2) { showErr('영상을 만들려면 이미지 2장 이상이 필요합니다.'); return; }
+    if (!window.MediaRecorder) { showErr('이 브라우저는 영상 녹화를 지원하지 않습니다. 크롬 최신 버전을 권장합니다.'); return; }
+    var mime = pickMime();
+    if (!mime) { showErr('지원하는 영상 포맷이 없습니다. 크롬 최신 버전을 사용해 주세요.'); return; }
+    var ext = mime.indexOf('mp4') >= 0 ? 'mp4' : 'webm';
+
+    busy = true; makeBtn.disabled = true; previewBtn.disabled = true; publishEl.disabled = true;
+    progressEl.className = 'progress show'; barFill.style.width = '0%';
+    ptext.textContent = '슬라이드를 준비하는 중…';
+
+    setTimeout(function () {
+      function finishErr(msg) {
+        progressEl.className = 'progress';
+        busy = false; makeBtn.disabled = false; previewBtn.disabled = false; publishEl.disabled = false;
+        showErr(msg);
+      }
+      var slides;
+      try { slides = prerenderAll(); } catch (e) { finishErr('이미지 처리 중 오류: ' + (e.message || e)); return; }
+      var stream;
+      try { stream = canvas.captureStream(30); } catch (e) { finishErr('캔버스 녹화를 시작할 수 없습니다: ' + (e.message || e)); return; }
+      var chunks = [], rec;
+      try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10000000 }); }
+      catch (e) { finishErr('녹화기 생성 실패: ' + (e.message || e)); return; }
+
+      rec.ondataavailable = function (ev) { if (ev.data && ev.data.size > 0) chunks.push(ev.data); };
+      rec.onstop = function () {
+        var blob = new Blob(chunks, { type: mime });
+        var url = URL.createObjectURL(blob);
+        var sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+        var now = new Date(), pad = function (n) { return String(n).padStart(2, '0'); };
+        var fname = 'topbanker-shorts-' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate())
+          + '-' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()) + '.' + ext;
+        resultEl.className = 'result show';
+        resultEl.innerHTML =
+          '<strong>영상이 완성되었습니다.</strong> (' + ext.toUpperCase() + ' · ' + sizeMB + 'MB)<br />' +
+          '아래 버튼으로 저장한 뒤 유튜브에 업로드하세요.<br />' +
+          '<a class="dl" href="' + url + '" download="' + fname + '">영상 다운로드</a>';
+        progressEl.className = 'progress';
+        busy = false; makeBtn.disabled = false; previewBtn.disabled = false; publishEl.disabled = false;
+        drawStatic();
+      };
+
+      ptext.textContent = '영상을 녹화하는 중입니다. 탭을 그대로 두세요…';
+      rec.start();
+      runTimeline(slides, {
+        onProgress: function (p) {
+          barFill.style.width = Math.round(p * 100) + '%';
+          ptext.textContent = '영상을 녹화하는 중… ' + Math.round(p * 100) + '%';
+        }
+      }).then(function () {
+        setTimeout(function () { try { rec.stop(); } catch (e) {} }, 300);
+      });
+    }, 60);
+  });
+
+  // 초기 미리보기
+  drawStatic();
 </script>
 </body>
 </html>
