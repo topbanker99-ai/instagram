@@ -1,10 +1,9 @@
 {
-  "installCommand": "npm install @vercel/blob@2.4.0 --no-save && npm install",
   "buildCommand": "",
   "outputDirectory": ".",
   "functions": {
-    "api/instagram-publish.js": {
-      "maxDuration": 120
-    }
+    "api/instagram-publish.js": { "maxDuration": 120 },
+    "api/instagram-reel.js": { "maxDuration": 250 },
+    "api/blob-upload-token.js": { "maxDuration": 60 }
   }
 }
