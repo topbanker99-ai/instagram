@@ -17,7 +17,7 @@
 const { put, list } = require('./blob-bundle.js');
 const SPECS = require('./specs.json');
 const TERMS = require('./glossary.json');
-const OUTRO = require('./outro-image.js');
+let OUTRO=null; try{ OUTRO=require('./outro-image.js'); }catch(e){}   // 없어도 크래시 안 나도록
 
 const API_VERSION = 'v23.0';
 const GRAPH = `https://graph.instagram.com/${API_VERSION}`;
@@ -166,6 +166,7 @@ async function buildReel(canvasMod, scenes){
     for(let i=0;i<scenes.length;i++){
       const sc=scenes[i]; let buf;
       if(sc.type==='outro'){
+        if(!OUTRO) continue;   // 마무리 이미지 파일이 없으면 그 장면만 건너뜀
         if(!outroFrame){
           const oc=createCanvas(1080,1920); const octx=oc.getContext('2d');
           octx.fillStyle='#1D1D1F'; octx.fillRect(0,0,1080,1920);

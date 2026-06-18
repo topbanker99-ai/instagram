@@ -16,7 +16,7 @@
 
 const { put, list } = require('./blob-bundle.js');
 const SPECS = require('./specs.json');
-const OUTRO = require('./outro-image.js');
+let OUTRO=null; try{ OUTRO=require('./outro-image.js'); }catch(e){}   // 없어도 크래시 안 나도록
 
 const API_VERSION = 'v23.0';
 const GRAPH = `https://graph.instagram.com/${API_VERSION}`;

@@ -12,6 +12,7 @@
 
 const { put, list } = require('./blob-bundle.js');
 const TERMS = require('./glossary.json');
+let OUTRO=null; try{ OUTRO=require('./outro-image.js'); }catch(e){}   // 없어도 크래시 안 나도록
 
 const PER_POST = 3;
 const API_VERSION = 'v23.0';
@@ -155,6 +156,12 @@ module.exports = async (req, res) => {
       const blob=await put(`${folder}/${i+1}.png`, buf, {access:'public',contentType:'image/png',addRandomSuffix:true,token:process.env.BLOB_READ_WRITE_TOKEN});
       imageUrls.push(blob.url);
     }
+    // 마무리(프리미엄/구독 안내) 이미지 — 모든 게시물 끝에 추가
+    try{
+      const ob=Buffer.from(OUTRO.split(',')[1],'base64');
+      const obl=await put('assets/outro.png', ob, {access:'public',contentType:'image/png',addRandomSuffix:false,allowOverwrite:true,token:process.env.BLOB_READ_WRITE_TOKEN});
+      imageUrls.push(obl.url);
+    }catch(e){}
     const caption=buildCaption(picks);
 
     if(dryrun) return out(200,{ok:true,dryrun:true,picked:picks.map(t=>t.name),indices,imageUrls,caption,nextWouldBe:(start+PER_POST)%total});
