@@ -26,6 +26,7 @@ const COL = { WHITE:'#FFFFFF', PARCH:'#F5F5F7', DARK:'#1D1D1F', INK:'#1D1D1F',
 const fnt = (fam, size) => `${size}px "${fam}"`;
 function drawTracked(ctx,x,y,t,tr){ for(const c of t){ctx.fillText(c,x,y); x+=ctx.measureText(c).width+tr;} return x; }
 function trackedWidth(ctx,t,tr){ let w=0; for(const c of t) w+=ctx.measureText(c).width+tr; return w; }
+function drawCentered(ctx,cx,y,t,tr){ const w=trackedWidth(ctx,t,tr)-tr; return drawTracked(ctx,cx-w/2,y,t,tr); }
 function wrapText(ctx,text,maxw,tr){
   const units = text.match(/[A-Za-z0-9.%·\-]+|\s+|[\s\S]/g) || [];
   const lines=[]; let cur='';
@@ -37,24 +38,24 @@ function wrapText(ctx,text,maxw,tr){
   return lines;
 }
 function makeCard(createCanvas, term, idx, total, dark){
-  const W=1080,M=110,CW=W-2*M;
+  const W=1080,M=110,CW=W-2*M,CX=W/2;
   const bg = dark?COL.DARK:(idx%2===0?COL.PARCH:COL.WHITE);
   const main=dark?COL.WHITE:COL.INK, body=dark?COL.SOFT_D:COL.SOFT_L, cap=dark?COL.CAP_D:COL.CAP_L, accent=dark?COL.BLUE_D:COL.BLUE_L;
   const canvas=createCanvas(W,W); const ctx=canvas.getContext('2d');
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,W); ctx.textBaseline='top';
-  ctx.fillStyle=main; ctx.font=fnt('Pretendard Bold',29); drawTracked(ctx,M,86,'TOP BANKER',5);
+  ctx.fillStyle=main; ctx.font=fnt('Pretendard Bold',29); drawCentered(ctx,CX,86,'TOP BANKER',5);
   let y=292;
   ctx.fillStyle=accent; ctx.font=fnt('Pretendard Bold',46);
-  drawTracked(ctx,M,y,`은행권 금융권 기출 빈출 상식 ${CIRC[idx-1]||''}`,-0.5); y+=82;
+  drawCentered(ctx,CX,y,`은행권 금융권 기출 빈출 상식 ${CIRC[idx-1]||''}`,-0.5); y+=82;
   let hs=74,tr=-hs*0.03; ctx.font=fnt('Pretendard SemiBold',hs);
   while(trackedWidth(ctx,term.name,tr)>CW&&hs>44){hs-=4;tr=-hs*0.03;ctx.font=fnt('Pretendard SemiBold',hs);}
   ctx.fillStyle=main;
-  for(const ln of wrapText(ctx,term.name,CW,tr)){drawTracked(ctx,M,y,ln,tr); y+=Math.round(hs*1.12);}
-  y+=12;
+  for(const ln of wrapText(ctx,term.name,CW,tr)){drawCentered(ctx,CX,y,ln,tr); y+=Math.round(hs*1.12);}
+  y+=14;
   let capline=(term.section||'').replace(/\s{2,}.*$/,'').trim();
   if(term.exam_tags&&term.exam_tags.length) capline+='   ·   기출 '+term.exam_tags.join(' · ');
   ctx.fillStyle=cap; ctx.font=fnt('Pretendard',28);
-  for(const ln of wrapText(ctx,capline,CW,0)){ctx.fillText(ln,M,y); y+=40;} y+=22;
+  for(const ln of wrapText(ctx,capline,CW,0)){drawCentered(ctx,CX,y,ln,0); y+=40;} y+=30;
   const BODY_BOTTOM=928, avail=BODY_BOTTOM-y;
   let bf=41,lh=60,lines=[];
   for(const f of [41,39,37,35,33,31,29]){ ctx.font=fnt('Pretendard',f); const ls=wrapText(ctx,term.definition,CW,0); const h=Math.round(f*1.46); if(ls.length*h<=avail||f===29){bf=f;lh=h;lines=ls;break;} }
