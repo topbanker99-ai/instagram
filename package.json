@@ -1,15 +1,9 @@
 {
-  "name": "topbanker-instagram",
+  "name": "instagram-publisher",
   "version": "1.0.0",
   "private": true,
-  "description": "탑뱅커 인스타그램 카드뉴스 자동 발행 백엔드",
-  "scripts": {
-    "build": "echo no build needed"
-  },
   "dependencies": {
-    "@vercel/blob": "^2.4.0"
-  },
-  "engines": {
-    "node": ">=18"
+    "@vercel/blob": "^2.4.0",
+    "@napi-rs/canvas": "^1.0.0"
   }
 }

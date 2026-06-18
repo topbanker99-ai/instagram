@@ -4,6 +4,7 @@
   "functions": {
     "api/instagram-publish.js": { "maxDuration": 120 },
     "api/instagram-reel.js": { "maxDuration": 250 },
-    "api/blob-upload-token.js": { "maxDuration": 60 }
+    "api/blob-upload-token.js": { "maxDuration": 60 },
+    "api/glossary-test.js": { "maxDuration": 60 }
   }
 }
