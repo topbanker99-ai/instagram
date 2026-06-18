@@ -6,6 +6,10 @@
     "api/instagram-publish.js": { "maxDuration": 120 },
     "api/instagram-reel.js": { "maxDuration": 250 },
     "api/blob-upload-token.js": { "maxDuration": 60 },
-    "api/glossary-test.js": { "maxDuration": 60, "includeFiles": "node_modules/@napi-rs/canvas-linux-x64-gnu/**" }
-  }
+    "api/glossary-test.js": { "maxDuration": 60, "includeFiles": "node_modules/@napi-rs/canvas-linux-x64-gnu/**" },
+    "api/glossary-cron.js": { "maxDuration": 300, "includeFiles": "node_modules/@napi-rs/canvas-linux-x64-gnu/**" }
+  },
+  "crons": [
+    { "path": "/api/glossary-cron", "schedule": "0 0 * * 1,3,5" }
+  ]
 }
