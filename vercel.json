@@ -11,6 +11,7 @@
     "api/specs-cron.js": { "maxDuration": 300, "includeFiles": "node_modules/@napi-rs/canvas-linux-x64-gnu/**" },
     "api/news-cron.js": { "maxDuration": 300, "includeFiles": "node_modules/@napi-rs/canvas-linux-x64-gnu/**" },
     "api/essay-cron.js": { "maxDuration": 300, "includeFiles": "node_modules/@napi-rs/canvas-linux-x64-gnu/**" },
+    "api/corp-cron.js": { "maxDuration": 300, "includeFiles": "node_modules/@napi-rs/canvas-linux-x64-gnu/**" },
     "api/reel-cron.js": { "maxDuration": 300, "includeFiles": "node_modules/**" },
     "api/token-refresh-cron.js": { "maxDuration": 60 },
     "api/blob-cleanup-cron.js": { "maxDuration": 60 }
@@ -21,6 +22,7 @@
     { "path": "/api/news-cron", "schedule": "0 0 * * 4" },
     { "path": "/api/reel-cron", "schedule": "0 9 * * 2,6" },
     { "path": "/api/essay-cron", "schedule": "0 0 * * 0" },
+    { "path": "/api/corp-cron", "schedule": "0 11 * * *" },
     { "path": "/api/token-refresh-cron", "schedule": "0 18 * * 0" },
     { "path": "/api/blob-cleanup-cron", "schedule": "0 20 * * 0" }
   ]
