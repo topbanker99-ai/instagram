@@ -6,8 +6,9 @@
 //   const tags = buildTags('glossary');                       // 상식 카드
 //   const tags = buildTags('specs',   { bank: '#국민은행' });  // 동적 은행명 포함
 //   const tags = buildTags('essay',   { inst: '#한국은행' });  // 동적 기관명 포함
+//   const tags = buildTags('corp',    { bank: '#기업은행' });  // 기업분석(동적 은행명)
 //
-// 종류: 'glossary' | 'specs' | 'news' | 'reel_spec' | 'reel_glossary' | 'essay'
+// 종류: 'glossary' | 'specs' | 'news' | 'reel_spec' | 'reel_glossary' | 'essay' | 'corp'
 //
 // 구조: 항상 들어가는 [공통 코어 + 유형 필수 + 동적태그] + 로테이션으로 채우는 [은행명/취준/유형 풀].
 //       게시물당 총 TOTAL개로 맞추고, 순서까지 섞어서 "복붙 도배"로 안 보이게 함.
@@ -51,6 +52,11 @@ const TYPES = {
     must: ['#논술기출', '#은행논술'],
     pool: ['#금융공기업논술', '#논술준비', '#금융논술', '#공기업논술', '#논술작성법', '#시사논술', '#경제논술', '#논술예상문제', '#약술', '#논술공부', '#논술첨삭', '#필기시험'],
     use:  { banks: 0, job: 1 },
+  },
+  corp: {
+    must: ['#기업분석', '#은행분석'],
+    pool: ['#은행기업분석', '#경영실적', '#재무제표', '#은행자소서', '#은행면접', '#지원동기', '#은행권취업', '#금융권준비', '#취업컨설팅', '#은행지원', '#합격자소서', '#은행취업컨설팅'],
+    use:  { banks: 2, job: 1 },
   },
 };
 
