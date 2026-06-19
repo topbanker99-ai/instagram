@@ -5,7 +5,7 @@
 //   ① 표지 ② SWOT(강점·약점) ③ SWOT(기회·위협) ④ 핵심 요약 ⑤ 핵심 지표(전년대비)
 //   ⑥ 디지털 트렌드 ⑦ 플랫폼 분석 ⑧ 네이버 안내(outro)
 //
-// 데이터: https://topbanker-ai.co.kr/api/corp-feed?bank={key}  (단일 소스 corp-data.json)
+// 데이터: 저장소 내장 api/corp-data.js (외부 API/사이트 불필요 — corp-cron이 직접 읽음)
 //
 // 인증:
 //   - Vercel Cron: Authorization: Bearer ${CRON_SECRET}  (자동, 매일 20시 KST)
@@ -19,7 +19,6 @@
 
 const API_VERSION = 'v23.0';
 const GRAPH = `https://graph.instagram.com/${API_VERSION}`;
-const CORP_FEED = 'https://topbanker-ai.co.kr/api/corp-feed';
 const PROGRESS_KEY = 'corp-progress.json';
 const GAP_DAYS = 10;                       // 발행 간격(일). 바꾸려면 이 숫자만 수정
 const PRETENDARD_BASE = 'https://raw.githubusercontent.com/orioncactus/pretendard/main/packages/pretendard/dist/public/static/';
@@ -138,6 +137,19 @@ function platformCard(createCanvas, p){
   return cv.toBuffer('image/png');
 }
 
+/* ───────── 원본 데이터(corp-data.js) → 렌더용 정규화 ───────── */
+const stripArr = a => (Array.isArray(a) ? a.map(strip) : []);
+const mapTD = a => (Array.isArray(a) ? a.map(it => ({ title:strip(it.t), body:strip(it.d) })) : []);
+function bankObj(key, raw){ return { key, name:raw.name, short:raw.short||null, eng:raw.eng||null }; }
+function buildBiz(key, raw){
+  return { bank:bankObj(key,raw), summary:strip(raw.bizSummary),
+    metrics:(raw.metrics||[]).map(m => { const o={label:m.k, value:m.v}; if(m.cls) o.trend=m.cls; return o; }),
+    swot:{ strength:stripArr(raw.swot&&raw.swot.s), weakness:stripArr(raw.swot&&raw.swot.w), opportunity:stripArr(raw.swot&&raw.swot.o), threat:stripArr(raw.swot&&raw.swot.t) } };
+}
+function buildDigital(key, raw){ const o=raw.digital||{}; return { bank:bankObj(key,raw), keywords:o.keywords||[], items:mapTD(o.items) }; }
+function buildPlatform(key, raw){ const o=raw.platform||{}; return { bank:bankObj(key,raw), intro:strip(o.intro),
+  items:(o.items||[]).map(p => ({ name:strip(p.name), eng:p.eng||null, stat:strip(p.stat), bullets:stripArr(p.bullets) })) }; }
+
 // 한 은행의 8장(아웃트로 제외 7장) 버퍼 생성. byId = {biz, digital, platform, ...}
 function buildBankBuffers(createCanvas, byId){
   const biz=byId.biz||{}, dig=byId.digital||{}, plat=byId.platform||{};
@@ -236,12 +248,12 @@ async function handler(req, res){
       }
     }
 
-    // 데이터 가져오기 (해당 은행 전체 항목 → biz/digital/platform 추출)
-    const r=await fetch(`${CORP_FEED}?bank=${encodeURIComponent(bankKey)}`); if(!r.ok) throw new Error('corp-feed 호출 실패 HTTP '+r.status);
-    const feed=await r.json(); const items=feed.items||[];
-    const byId={}; for(const it of items){ if(it && it.section && it.available!==false) byId[it.section.key]=it; }
-    if(!byId.biz) throw new Error(`'${bankKey}' 영업현황(biz) 데이터가 없습니다.`);
-    const bankName=(byId.biz.bank&&byId.biz.bank.name)||bankKey;
+    // 데이터: 저장소 내장 corp-data.js (외부 API/사이트 불필요)
+    let CORP_RAW; try{ CORP_RAW=require('./corp-data.js'); }catch(e){ return out(500,{ok:false,error:'corp-data.js 로드 실패: '+e.message}); }
+    const raw=CORP_RAW[bankKey];
+    if(!raw||!raw.bizSummary) throw new Error(`'${bankKey}' 데이터가 없습니다.`);
+    const byId={ biz:buildBiz(bankKey,raw), digital:buildDigital(bankKey,raw), platform:buildPlatform(bankKey,raw) };
+    const bankName=raw.name||bankKey;
 
     // 렌더 → Blob 업로드
     const { put } = require('./blob-bundle.js');
