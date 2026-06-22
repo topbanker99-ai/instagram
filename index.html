@@ -198,6 +198,25 @@
   <div class="progress" id="reelProgress"><div class="bar"><i id="reelBar"></i></div><div class="ptext" id="reelPtext"></div></div>
   <div class="status" id="reelStatus"></div>
 
+  <div class="divider"><span>이미 만들어 둔 영상을 릴스로 올리기</span></div>
+
+  <div class="field">
+    <label class="label">영상 파일 <span class="hint">— MP4 · MOV · WEBM (세로 9:16 권장, 최대 300MB)</span></label>
+    <div class="drop" id="vdrop">
+      <span class="mark">▲</span>
+      <div class="big">영상을 끌어다 놓거나 클릭해서 선택</div>
+      <div class="small">한 개 · 인스타 릴스용 세로 영상 권장</div>
+    </div>
+    <input type="file" id="vfile" accept="video/mp4,video/quicktime,video/webm" hidden />
+    <div class="meta" id="vinfo"></div>
+  </div>
+
+  <div class="ptext" style="text-align:left; margin: -4px 0 14px;">맨 위 <strong>본문(캡션)</strong> 칸에 적은 내용이 이 릴스에도 함께 올라갑니다. 인스타에서 영상을 처리하는 데 몇 분 걸릴 수 있습니다.</div>
+
+  <button class="btn" id="vreelBtn" disabled>이 영상 릴스로 <span class="accent">발행</span></button>
+  <div class="progress" id="vreelProgress"><div class="bar"><i id="vreelBar"></i></div><div class="ptext" id="vreelPtext"></div></div>
+  <div class="status" id="vreelStatus"></div>
+
   <div class="footnote">
     인스타 발행 후 <strong>instagram.com/topbanker99</strong> 에서 게시물을 확인하세요.<br />
     쇼츠 영상은 실시간 녹화 방식이라 길이만큼 시간이 걸리며, MP4 또는 WEBM으로 저장됩니다(유튜브는 둘 다 업로드 가능).
@@ -625,6 +644,108 @@ is-buffer/index.js:
       setReelStatus('err', '오류: ' + (err && err.message ? err.message : err));
     }).then(function () {
       busy = false; reelBtn.disabled = false; makeBtn.disabled = false; previewBtn.disabled = false; publishEl.disabled = false;
+    });
+  });
+
+
+  // ===== 이미 만든 영상 직접 올려 릴스 발행 =====
+  var pickedVideo = null;
+  var vdrop = document.getElementById('vdrop');
+  var vfile = document.getElementById('vfile');
+  var vinfo = document.getElementById('vinfo');
+  var vreelBtn = document.getElementById('vreelBtn');
+  var vreelProgress = document.getElementById('vreelProgress');
+  var vreelBar = document.getElementById('vreelBar');
+  var vreelPtext = document.getElementById('vreelPtext');
+  var vreelStatus = document.getElementById('vreelStatus');
+  function setVStatus(kind, html) { vreelStatus.className = 'status show ' + kind; vreelStatus.innerHTML = html; }
+
+  function fmtSize(bytes) {
+    if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + 'MB';
+    return Math.max(1, Math.round(bytes / 1024)) + 'KB';
+  }
+  function videoCtype(file) {
+    var t = (file.type || '').toLowerCase();
+    if (t === 'video/mp4' || t === 'video/quicktime' || t === 'video/webm') return t;
+    var name = (file.name || '').toLowerCase();
+    if (name.slice(-4) === '.mov') return 'video/quicktime';
+    if (name.slice(-5) === '.webm') return 'video/webm';
+    return 'video/mp4';
+  }
+  function videoExt(file) {
+    var name = (file.name || '').toLowerCase();
+    var m = name.match(/\.(mp4|mov|webm|m4v)$/);
+    return m ? m[1] : 'mp4';
+  }
+
+  function setPickedVideo(file) {
+    if (!file) return;
+    var isVideo = (file.type || '').indexOf('video/') === 0 || /\.(mp4|mov|webm|m4v)$/i.test(file.name || '');
+    if (!isVideo) { setVStatus('err', '영상 파일(MP4·MOV·WEBM)만 올릴 수 있습니다.'); return; }
+    if (file.size > 300 * 1024 * 1024) { setVStatus('err', '영상이 너무 큽니다. 300MB 이하 파일만 올릴 수 있어요. (현재 ' + fmtSize(file.size) + ')'); return; }
+    pickedVideo = file;
+    vreelStatus.className = 'status'; vreelStatus.innerHTML = '';
+    vinfo.innerHTML = '▶ <strong>' + (file.name || '영상') + '</strong> · ' + fmtSize(file.size) + ' · 선택됨';
+    vreelBtn.disabled = false;
+  }
+
+  vdrop.addEventListener('click', function () { vfile.click(); });
+  vfile.addEventListener('change', function (e) { if (e.target.files && e.target.files[0]) setPickedVideo(e.target.files[0]); });
+  vdrop.addEventListener('dragover', function (e) { e.preventDefault(); vdrop.classList.add('over'); });
+  vdrop.addEventListener('dragleave', function () { vdrop.classList.remove('over'); });
+  vdrop.addEventListener('drop', function (e) {
+    e.preventDefault(); vdrop.classList.remove('over');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) setPickedVideo(e.dataTransfer.files[0]);
+  });
+
+  vreelBtn.addEventListener('click', function () {
+    if (busy) return;
+    if (!pickedVideo) { setVStatus('err', '먼저 올릴 영상을 선택해 주세요.'); return; }
+    var secret = secretEl.value.trim();
+    if (!secret) { setVStatus('err', '발행 비밀키를 입력하세요.'); return; }
+    if (typeof VercelBlobClient === 'undefined' || !VercelBlobClient.upload) { setVStatus('err', '업로드 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.'); return; }
+
+    busy = true; vreelBtn.disabled = true; reelBtn.disabled = true; makeBtn.disabled = true; previewBtn.disabled = true; publishEl.disabled = true;
+    vreelStatus.className = 'status'; vreelStatus.innerHTML = '';
+    vreelProgress.className = 'progress show'; vreelBar.style.width = '0%'; vreelPtext.textContent = '영상을 업로드하는 중…';
+
+    var now = new Date(), pad = function (n) { return String(n).padStart(2, '0'); };
+    var pathname = 'reels/upload-' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()) + '.' + videoExt(pickedVideo);
+
+    VercelBlobClient.upload(pathname, pickedVideo, {
+      access: 'public',
+      handleUploadUrl: '/api/blob-upload-token',
+      contentType: videoCtype(pickedVideo),
+      clientPayload: JSON.stringify({ secret: secret }),
+      onUploadProgress: function (p) {
+        var pct = (p && p.percentage != null) ? Math.round(p.percentage) : null;
+        if (pct != null) { vreelBar.style.width = pct + '%'; vreelPtext.textContent = '영상을 업로드하는 중… ' + pct + '%'; }
+      }
+    }).then(function (result) {
+      vreelBar.style.width = '100%';
+      vreelPtext.textContent = '인스타그램에서 영상을 처리하고 발행하는 중입니다. 몇 분 걸릴 수 있어요…';
+      return fetch(REEL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-publish-secret': secret },
+        body: JSON.stringify({ caption: capEl.value, videoUrl: result.url })
+      });
+    }).then(function (res) {
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (r) {
+      vreelProgress.className = 'progress';
+      if (r.ok && r.data && r.data.ok) {
+        setVStatus('ok', '릴스가 발행되었습니다.<br />확인: <a href="' + IG_PROFILE + '" target="_blank" rel="noopener">instagram.com/topbanker99</a>');
+      } else {
+        var d = r.data || {}; var msg = d.error;
+        if (msg && typeof msg === 'object') msg = msg.message || JSON.stringify(msg);
+        var step = d.step ? ' [' + d.step + ']' : '';
+        setVStatus('err', '릴스 발행 실패' + step + ': ' + (msg || '알 수 없는 오류') + '<br /><span style="color:var(--muted)">세로 9:16 · MP4(H.264/AAC) 형식인지, 길이가 너무 길지 않은지 확인해 보세요.</span>');
+      }
+    }).catch(function (err) {
+      vreelProgress.className = 'progress';
+      setVStatus('err', '오류: ' + (err && err.message ? err.message : err));
+    }).then(function () {
+      busy = false; vreelBtn.disabled = false; reelBtn.disabled = false; makeBtn.disabled = false; previewBtn.disabled = false; publishEl.disabled = false;
     });
   });
 
