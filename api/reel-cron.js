@@ -193,7 +193,7 @@ async function buildReel(canvasMod, scenes){
     const out=path.join(dir,'out.mp4');
     const fadeOut=Math.max(0.1,total-0.6).toFixed(2);
     const afOut=Math.max(0.1,total-1.0).toFixed(2);
-    const vf=`scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,format=yuv420p,fade=t=in:st=0:d=0.4,fade=t=out:st=${fadeOut}:d=0.5`;
+    const vf=`scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,format=yuv420p,fade=t=out:st=${fadeOut}:d=0.5`;
     execFileSync(FFMPEG,['-y','-f','concat','-safe','0','-i',path.join(dir,'list.txt'),'-i',path.join(dir,'music.mp3'),
       '-vf',vf,'-af',`afade=t=out:st=${afOut}:d=1.0`,'-c:v','libx264','-profile:v','high','-pix_fmt','yuv420p','-r','30',
       '-c:a','aac','-b:a','128k','-t',total.toFixed(2),'-movflags','+faststart',out],{stdio:'ignore'});
@@ -239,7 +239,7 @@ function glossaryCaption(term){
 async function publishReel(videoUrl, caption){
   const IG=process.env.IG_USER_ID, TOKEN=process.env.IG_ACCESS_TOKEN;
   const rC=await fetch(`${GRAPH}/${IG}/media`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({media_type:'REELS',video_url:videoUrl,caption,access_token:TOKEN})});
+    body:JSON.stringify({media_type:'REELS',video_url:videoUrl,caption,thumb_offset:1000,access_token:TOKEN})});
   const jC=await rC.json(); if(!rC.ok||!jC.id) throw new Error('릴스 컨테이너 실패: '+JSON.stringify(jC.error||jC));
   const creationId=jC.id; let status='';
   for(let i=0;i<100;i++){ await new Promise(r=>setTimeout(r,2500));
