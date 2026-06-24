@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>탑뱅커 · 카드뉴스 발행 & 쇼츠 제작</title>
+<style>
+  :root {
+    --navy: #1B3A5C; --gold: #C9A961; --teal: #2E8B8B; --offwhite: #F7F9FC;
+    --white: #FFFFFF; --line: #E2E8F0; --muted: #64748B; --danger: #C0392B; --ok: #2E8B8B;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--offwhite); color: var(--navy);
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 660px; margin: 0 auto; padding: 40px 20px 80px; }
+  .topline { height: 4px; background: var(--gold); border-radius: 2px; }
+  header { padding: 26px 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+  .brand { font-size: 13px; letter-spacing: 3px; color: var(--gold); font-weight: 700; text-transform: uppercase; }
+  h1 { font-size: 26px; margin: 8px 0 4px; font-weight: 800; letter-spacing: -0.4px; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .field { margin-bottom: 24px; }
+  .label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .hint { color: var(--muted); font-size: 12px; font-weight: 400; }
+  input[type="password"], textarea { width: 100%; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; font-size: 15px; font-family: inherit; color: var(--navy); background: var(--white);
+    outline: none; transition: border-color .15s; }
+  input[type="password"]:focus, textarea:focus { border-color: var(--teal); }
+  textarea { resize: vertical; min-height: 130px; line-height: 1.55; }
+  .remember { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .remember input { width: 16px; height: 16px; accent-color: var(--teal); }
+  .opts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .opt { border: 1px solid var(--line); background: var(--white); color: var(--navy); border-radius: 9px;
+    padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .12s; font-family: inherit; }
+  .opt:hover { border-color: var(--teal); }
+  .opt.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .drop { border: 2px dashed var(--line); border-radius: 14px; background: var(--white);
+    padding: 34px 20px; text-align: center; cursor: pointer; transition: all .15s; }
+  .drop:hover { border-color: var(--teal); background: #FBFDFE; }
+  .drop.over { border-color: var(--gold); background: #FFFDF6; }
+  .drop .big { font-size: 15px; font-weight: 700; }
+  .drop .small { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .drop .mark { font-size: 22px; color: var(--gold); display: block; margin-bottom: 10px; }
+  .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .thumb { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    background: var(--white); aspect-ratio: 1 / 1; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .order { position: absolute; top: 6px; left: 6px; min-width: 22px; height: 22px; padding: 0 6px;
+    background: var(--navy); color: #fff; font-size: 12px; font-weight: 700; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; }
+  .thumb .controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; }
+  .thumb .controls button { flex: 1; border: none; background: rgba(27,58,92,.86); color: #fff;
+    font-size: 13px; padding: 5px 0; cursor: pointer; }
+  .thumb .controls button:hover { background: var(--navy); }
+  .thumb .controls .del { background: rgba(192,57,43,.86); }
+  .thumb .controls .del:hover { background: var(--danger); }
+  .thumb .controls button:disabled { opacity: .35; cursor: default; }
+  .meta { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+  .actions { margin-top: 30px; }
+  .btn { width: 100%; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 800;
+    cursor: pointer; background: var(--navy); color: #fff; letter-spacing: .3px; transition: background .15s; }
+  .btn:hover:not(:disabled) { background: #14304d; }
+  .btn:disabled { background: #9AA8B8; cursor: default; }
+  .btn .accent { color: var(--gold); }
+  .btn.secondary { background: var(--white); color: var(--navy); border: 1px solid var(--line); margin-bottom: 12px; }
+  .btn.secondary:hover:not(:disabled) { border-color: var(--teal); background: #FBFDFE; }
+  .status { margin-top: 22px; border-radius: 12px; padding: 16px 18px; font-size: 14px; line-height: 1.55; display: none; }
+  .status.show { display: block; }
+  .status.work { background: #EEF6F6; border: 1px solid #CDE6E6; color: #1E5E5E; }
+  .status.ok { background: #ECF7F2; border: 1px solid #BFE6D5; color: #1B6B4A; }
+  .status.err { background: #FCEDEC; border: 1px solid #F2C6C2; color: #8A2A20; }
+  .status a { color: inherit; font-weight: 700; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #BCDBDB;
+    border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite;
+    vertical-align: -2px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .divider { display: flex; align-items: center; gap: 14px; margin: 40px 0 26px; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .divider span { font-size: 13px; font-weight: 700; color: var(--gold); letter-spacing: 1px; white-space: nowrap; }
+  .preview-wrap { display: flex; justify-content: center; margin: 8px 0 4px; }
+  #canvas { width: 240px; height: 427px; border-radius: 14px; background: var(--navy);
+    border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(27,58,92,.12); display: block; }
+  .progress { margin-top: 18px; display: none; }
+  .progress.show { display: block; }
+  .bar { height: 10px; background: var(--line); border-radius: 6px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0%; background: var(--teal); transition: width .1s linear; }
+  .ptext { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
+  .result { margin-top: 20px; border-radius: 12px; padding: 18px; display: none;
+    background: #ECF7F2; border: 1px solid #BFE6D5; color: #1B6B4A; }
+  .result.show { display: block; }
+  .result a.dl { display: inline-block; margin-top: 10px; background: var(--navy); color: #fff;
+    text-decoration: none; padding: 11px 18px; border-radius: 10px; font-weight: 700; font-size: 14px; }
+  .result a.dl:hover { background: #14304d; }
+  .errbox { margin-top: 18px; border-radius: 12px; padding: 14px 16px; font-size: 14px;
+    background: #FCEDEC; border: 1px solid #F2C6C2; color: #8A2A20; display: none; }
+  .errbox.show { display: block; }
+  .footnote { margin-top: 34px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="topline"></div>
+<div class="wrap">
+  <header>
+    <div class="brand">탑뱅커</div>
+    <h1>카드뉴스 발행 &amp; 쇼츠 제작</h1>
+    <p class="sub">이미지를 한 번 올리면, 인스타그램 발행과 유튜브 쇼츠 영상(배경음악 포함) 제작을 한 곳에서.</p>
+  </header>
+
+  <div class="field">
+    <label class="label" for="secret">발행 비밀키 <span class="hint">— Vercel에 등록한 PUBLISH_SECRET (인스타 발행에만 사용)</span></label>
+    <input type="password" id="secret" placeholder="비밀키 입력" autocomplete="off" />
+    <label class="remember"><input type="checkbox" id="remember" /> 이 브라우저에 비밀키 저장</label>
+  </div>
+
+  <div class="field">
+    <label class="label">카드뉴스 이미지 <span class="hint">— 2~15장 (JPG·PNG), 파일명 순서대로</span></label>
+    <div class="drop" id="drop">
+      <span class="mark">▲</span>
+      <div class="big">이미지를 끌어다 놓거나 클릭해서 선택</div>
+      <div class="small">1080 × 1080 권장 · 여러 장 한 번에 선택 가능</div>
+    </div>
+    <input type="file" id="file" accept="image/jpeg,image/png" multiple hidden />
+    <div class="thumbs" id="thumbs"></div>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <div class="field">
+    <label class="label" for="caption">본문 <span class="hint">— 인스타 캡션 · 해시태그 (최대 2,200자)</span></label>
+    <textarea id="caption" placeholder="본문 내용과 해시태그를 입력하세요."></textarea>
+    <div class="meta" id="capmeta">0자</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="publish">인스타그램에 <span class="accent">발행</span></button>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div class="divider"><span>같은 이미지로 유튜브 쇼츠 만들기</span></div>
+
+  <div class="field">
+    <label class="label">카드 한 장당 노출 시간</label>
+    <div class="opts" id="durOpts">
+      <button class="opt" data-dur="2000">2초</button>
+      <button class="opt active" data-dur="3000">3초</button>
+      <button class="opt" data-dur="4000">4초</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">전환 효과</label>
+    <div class="opts" id="fadeOpts">
+      <button class="opt active" data-fade="500">부드러운 페이드</button>
+      <button class="opt" data-fade="0">없음 (바로 전환)</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">배경 <span class="hint">— 정사각 카드를 세로 화면에 채울 방식</span></label>
+    <div class="opts" id="bgOpts">
+      <button class="opt active" data-bg="blur">이미지 흐림</button>
+      <button class="opt" data-bg="navy">네이비</button>
+      <button class="opt" data-bg="white">흰색</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">배경음악 <span class="hint">— 쇼츠 영상에만 입혀집니다 (인스타 피드 발행에는 미적용)</span></label>
+    <div class="opts" id="musicOpts">
+      <button class="opt active" data-music="default">기본음악 (락 펑키)</button>
+      <button class="opt" data-music="custom">내 음악 올리기</button>
+      <button class="opt" data-music="none">없음</button>
+    </div>
+    <input type="file" id="musicFile" accept="audio/*" hidden />
+    <div class="meta" id="musicName"></div>
+  </div>
+
+  <div class="field">
+    <label class="label">미리보기</label>
+    <div class="preview-wrap">
+      <canvas id="canvas" width="1080" height="1920"></canvas>
+    </div>
+  </div>
+
+  <button class="btn secondary" id="previewBtn">미리보기 재생 (소리 포함)</button>
+  <button class="btn" id="makeBtn">쇼츠 <span class="accent">영상 만들기</span></button>
+
+  <div class="progress" id="progress">
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="ptext" id="ptext">영상을 만드는 중입니다…</div>
+  </div>
+  <div class="result" id="result"></div>
+  <div class="errbox" id="errbox"></div>
+
+  <div class="divider"><span>이 영상을 인스타그램 릴스로</span></div>
+
+  <button class="btn secondary" id="reelBtn" disabled>위에서 만든 영상을 릴스로 발행</button>
+  <div class="ptext" style="text-align:left; margin: -4px 0 14px;">쇼츠 영상을 먼저 만든 뒤 사용할 수 있습니다. 본문(캡션)이 함께 올라가며, 인스타 처리에 몇 분 걸릴 수 있습니다.</div>
+  <div class="progress" id="reelProgress"><div class="bar"><i id="reelBar"></i></div><div class="ptext" id="reelPtext"></div></div>
+  <div class="status" id="reelStatus"></div>
+
+  <div class="divider"><span>이미 만들어 둔 영상을 릴스로 올리기</span></div>
+
+  <div class="field">
+    <label class="label">영상 파일 <span class="hint">— MP4 · MOV · WEBM (세로 9:16 권장, 최대 300MB)</span></label>
+    <div class="drop" id="vdrop">
+      <span class="mark">▲</span>
+      <div class="big">영상을 끌어다 놓거나 클릭해서 선택</div>
+      <div class="small">한 개 · 인스타 릴스용 세로 영상 권장</div>
+    </div>
+    <input type="file" id="vfile" accept="video/mp4,video/quicktime,video/webm" hidden />
+    <div class="meta" id="vinfo"></div>
+  </div>
+
+  <div class="ptext" style="text-align:left; margin: -4px 0 14px;">맨 위 <strong>본문(캡션)</strong> 칸에 적은 내용이 이 릴스에도 함께 올라갑니다. 인스타에서 영상을 처리하는 데 몇 분 걸릴 수 있습니다.</div>
+
+  <button class="btn" id="vreelBtn" disabled>이 영상 릴스로 <span class="accent">발행</span></button>
+  <div class="progress" id="vreelProgress"><div class="bar"><i id="vreelBar"></i></div><div class="ptext" id="vreelPtext"></div></div>
+  <div class="status" id="vreelStatus"></div>
+
+  <div class="footnote">
+    인스타 발행 후 <strong>instagram.com/topbanker99</strong> 에서 게시물을 확인하세요.<br />
+    쇼츠 영상은 실시간 녹화 방식이라 길이만큼 시간이 걸리며, MP4 또는 WEBM으로 저장됩니다(유튜브는 둘 다 업로드 가능).
+  </div>
+</div>
+
+<script>
+/* ===== blob-client (브라우저 업로드 모듈, 인라인 내장) ===== */
+var VercelBlobClient=(()=>{var Je=Object.create;var H=Object.defineProperty;var je=Object.getOwnPropertyDescriptor;var Qe=Object.getOwnPropertyNames;var Ze=Object.getPrototypeOf,et=Object.prototype.hasOwnProperty;var L=(e,t)=>()=>{try{return t||e((t={exports:{}}).exports,t),t.exports}catch(r){throw t=0,r}},tt=(e,t)=>{for(var r in t)H(e,r,{get:t[r],enumerable:!0})},ie=(e,t,r,n)=>{if(t&&typeof t=="object"||typeof t=="function")for(let i of Qe(t))!et.call(e,i)&&i!==r&&H(e,i,{get:()=>t[i],enumerable:!(n=je(t,i))||n.enumerable});return e};var F=(e,t,r)=>(r=e!=null?Je(Ze(e)):{},ie(t||!e||!e.__esModule?H(r,"default",{value:e,enumerable:!0}):r,e)),rt=e=>ie(H({},"__esModule",{value:!0}),e);var ce=L((nr,se)=>{se.exports=function(t){return t!=null&&t.constructor!=null&&typeof t.constructor.isBuffer=="function"&&t.constructor.isBuffer(t)}});var fe=L((ar,de)=>{function v(e,t){typeof t=="boolean"&&(t={forever:t}),this._originalTimeouts=JSON.parse(JSON.stringify(e)),this._timeouts=e,this._options=t||{},this._maxRetryTime=t&&t.maxRetryTime||1/0,this._fn=null,this._errors=[],this._attempts=1,this._operationTimeout=null,this._operationTimeoutCb=null,this._timeout=null,this._operationStart=null,this._timer=null,this._options.forever&&(this._cachedTimeouts=this._timeouts.slice(0))}de.exports=v;v.prototype.reset=function(){this._attempts=1,this._timeouts=this._originalTimeouts.slice(0)};v.prototype.stop=function(){this._timeout&&clearTimeout(this._timeout),this._timer&&clearTimeout(this._timer),this._timeouts=[],this._cachedTimeouts=null};v.prototype.retry=function(e){if(this._timeout&&clearTimeout(this._timeout),!e)return!1;var t=new Date().getTime();if(e&&t-this._operationStart>=this._maxRetryTime)return this._errors.push(e),this._errors.unshift(new Error("RetryOperation timeout occurred")),!1;this._errors.push(e);var r=this._timeouts.shift();if(r===void 0)if(this._cachedTimeouts)this._errors.splice(0,this._errors.length-1),r=this._cachedTimeouts.slice(-1);else return!1;var n=this;return this._timer=setTimeout(function(){n._attempts++,n._operationTimeoutCb&&(n._timeout=setTimeout(function(){n._operationTimeoutCb(n._attempts)},n._operationTimeout),n._options.unref&&n._timeout.unref()),n._fn(n._attempts)},r),this._options.unref&&this._timer.unref(),!0};v.prototype.attempt=function(e,t){this._fn=e,t&&(t.timeout&&(this._operationTimeout=t.timeout),t.cb&&(this._operationTimeoutCb=t.cb));var r=this;this._operationTimeoutCb&&(this._timeout=setTimeout(function(){r._operationTimeoutCb()},r._operationTimeout)),this._operationStart=new Date().getTime(),this._fn(this._attempts)};v.prototype.try=function(e){console.log("Using RetryOperation.try() is deprecated"),this.attempt(e)};v.prototype.start=function(e){console.log("Using RetryOperation.start() is deprecated"),this.attempt(e)};v.prototype.start=v.prototype.try;v.prototype.errors=function(){return this._errors};v.prototype.attempts=function(){return this._attempts};v.prototype.mainError=function(){if(this._errors.length===0)return null;for(var e={},t=null,r=0,n=0;n<this._errors.length;n++){var i=this._errors[n],a=i.message,o=(e[a]||0)+1;e[a]=o,o>=r&&(t=i,r=o)}return t}});var pe=L(B=>{var nt=fe();B.operation=function(e){var t=B.timeouts(e);return new nt(t,{forever:e&&(e.forever||e.retries===1/0),unref:e&&e.unref,maxRetryTime:e&&e.maxRetryTime})};B.timeouts=function(e){if(e instanceof Array)return[].concat(e);var t={retries:10,factor:2,minTimeout:1*1e3,maxTimeout:1/0,randomize:!1};for(var r in e)t[r]=e[r];if(t.minTimeout>t.maxTimeout)throw new Error("minTimeout is greater than maxTimeout");for(var n=[],i=0;i<t.retries;i++)n.push(this.createTimeout(i,t));return e&&e.forever&&!n.length&&n.push(this.createTimeout(i,t)),n.sort(function(a,o){return a-o}),n};B.createTimeout=function(e,t){var r=t.randomize?Math.random()+1:1,n=Math.round(r*Math.max(t.minTimeout,1)*Math.pow(t.factor,e));return n=Math.min(n,t.maxTimeout),n};B.wrap=function(e,t,r){if(t instanceof Array&&(r=t,t=null),!r){r=[];for(var n in e)typeof e[n]=="function"&&r.push(n)}for(var i=0;i<r.length;i++){var a=r[i],o=e[a];e[a]=function(c){var f=B.operation(t),u=Array.prototype.slice.call(arguments,1),m=u.pop();u.push(function(p){f.retry(p)||(p&&(arguments[0]=f.mainError()),m.apply(this,arguments))}),f.attempt(function(){c.apply(e,u)})}.bind(e,o),e[a].options=t}}});var me=L((lr,he)=>{he.exports=pe()});var be=L((sr,we)=>{var ot=me();function at(e,t){function r(n,i){var a=t||{},o;"randomize"in a||(a.randomize=!0),o=ot.operation(a);function l(u){i(u||new Error("Aborted"))}function c(u,m){if(u.bail){l(u);return}o.retry(u)?a.onRetry&&a.onRetry(u,m):i(o.mainError())}function f(u){var m;try{m=e(l,u)}catch(p){c(p,u);return}Promise.resolve(m).then(n).catch(function(h){c(h,u)})}o.attempt(f)}return new Promise(r)}we.exports=at});var Y=L((ur,ge)=>{function it(e,t){if(typeof e!="function")throw new TypeError(`Expected the first argument to be a \`function\`, got \`${typeof e}\`.`);let r,n=0;return function(...a){clearTimeout(r);let o=Date.now(),l=o-n,c=t-l;c<=0?(n=o,e.apply(this,a)):r=setTimeout(()=>{n=Date.now(),e.apply(this,a)},c)}}ge.exports=it});var er={};tt(er,{upload:()=>Ke});function le(){if(typeof navigator<"u"&&navigator.product==="ReactNative")return!0;if(typeof process<"u"){let e=process.type;return e==="renderer"||e==="worker"?!1:!!(process.versions&&process.versions.node)}return!1}var Ce=F(ce(),1);var ue={toWeb(){throw new Error("Vercel Blob: Sorry, we cannot get a Readable stream in this environment. If you see this message please open an issue here: https://github.com/vercel/storage/ with details on your environment.")}};var Oe=F(be(),1);var x=globalThis.fetch.bind(globalThis);var De=F(Y(),1),Ge=F(Y(),1),lt=new Promise(e=>{try{let t=new Uint8Array([104,101,108,108,111]);new Blob([t]).text().then(n=>{e(n==="hello")}).catch(()=>{e(!1)})}catch{e(!1)}});async function Be(e){if(e instanceof ReadableStream)return e;if(e instanceof Blob)return e.stream();if(Pe(e))return ue.toWeb(e);let t;return e instanceof ArrayBuffer?t=new Uint8Array(e):ct(e)?t=e:t=st(e),await lt?new Blob([t]).stream():new ReadableStream({start(r){r.enqueue(t),r.close()}})}function Pe(e){return typeof e=="object"&&typeof e.pipe=="function"&&e.readable&&typeof e._read=="function"&&typeof e._readableState=="object"}function st(e){return new TextEncoder().encode(e)}function ct(e){return(0,Ce.default)(e)}var ut=Symbol.for("@vercel/request-context"),dt=()=>{var e,t,r;return(r=(t=(e=globalThis[ut])==null?void 0:e.get)==null?void 0:t.call(e))!=null?r:{}};function ft(e){try{let t=process.env[e];return typeof t=="string"&&t.trim()!==""?t.trim():void 0}catch{return}}function pt(){var e;let t=(e=dt().headers)==null?void 0:e["x-vercel-oidc-token"];return typeof t=="string"&&t.trim()!==""?t.trim():ft("VERCEL_OIDC_TOKEN")}var ht=/^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i,mt={b:1,kb:1024,mb:1<<20,gb:1<<30,tb:1024**4,pb:1024**5};function y(e){if(typeof e=="number"&&!Number.isNaN(e))return e;if(typeof e!="string")return null;let t=ht.exec(e),r,n="b";if(!t)r=parseInt(e,10);else{let[,i,,,a]=t;if(!i)return null;r=parseFloat(i),a&&(n=a.toLowerCase())}return Number.isNaN(r)?null:Math.floor(mt[n]*r)}var wt="https://vercel.com/api/blob";function ve(e){try{let t=process.env[e];return typeof t=="string"&&t.trim()!==""?t.trim():void 0}catch{return}}function J(e){let[,,,t=""]=e.split("_");return t}function bt(e){let t=e.replace(/-/g,"+").replace(/_/g,"/"),r=4-t.length%4;if(r!==4&&(t+="=".repeat(r)),typeof atob=="function")return atob(t);if(typeof Buffer<"u")return Buffer.from(t,"base64").toString("utf8");throw new s("Cannot decode base64: no atob or Buffer available.")}function gt(e){let t=e.indexOf(".");if(t<0)throw new s("Invalid delegation token format.");let r=e.slice(0,t),n;try{n=JSON.parse(bt(r))}catch{throw new s("Invalid delegation token payload.")}if(!n.storeId||typeof n.storeId!="string")throw new s("Delegation token payload is missing `storeId`.");return j(n.storeId)}function j(e){return e.startsWith("store_")?e.slice(6):e}function vt(e){var t,r;if(e?.presignedUrlPayload)return{kind:"presigned",storeId:gt(e.presignedUrlPayload.delegationToken)};if(e?.token){let o=J(e.token);return{kind:"readWrite",token:e.token,storeId:o}}let n=(t=e?.oidcToken)==null?void 0:t.trim(),i=n||pt();if(i){let o=(r=e?.storeId)==null?void 0:r.trim();if(o)return{kind:"oidc",token:i,storeId:j(o)};let l=ve("BLOB_STORE_ID");if(l)return{kind:"oidc",token:i,storeId:j(l)};if(n)throw new s("oidcToken was passed, but no storeId was found. Pass a `storeId` option or set `BLOB_STORE_ID` to use OIDC auth")}let a=ve("BLOB_READ_WRITE_TOKEN");if(a){let o=J(a);return{kind:"readWrite",token:a,storeId:o}}throw new s("No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `oidcToken` (or `VERCEL_OIDC_TOKEN`) with `storeId` or `BLOB_STORE_ID`.")}var s=class extends Error{constructor(e){super(`Vercel Blob: ${e}`)}};function ee(e){if(typeof e!="object"||e===null)return!1;let t=Object.getPrototypeOf(e);return(t===null||t===Object.prototype||Object.getPrototypeOf(t)===null)&&!(Symbol.toStringTag in e)&&!(Symbol.iterator in e)}var yt=["//"],Le=(()=>{if(le())return!0;if(Q().startsWith("http://localhost"))return!1;let t=!1,r=new Request(Q(),{body:new ReadableStream,method:"POST",get duplex(){return t=!0,"half"}}).headers.has("Content-Type");return t&&!r})();function Q(e=""){let t=null;try{t=process.env.VERCEL_BLOB_API_URL||process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL}catch{}return`${t||wt}${e}`}var ye=typeof TextEncoder=="function"?new TextEncoder:null;function q(e){return e?typeof e=="string"?ye?ye.encode(e).byteLength:new Blob([e]).size:"byteLength"in e&&typeof e.byteLength=="number"?e.byteLength:"size"in e&&typeof e.size=="number"?e.size:0:0}var _t=(e,t)=>{let r=new Uint8Array(0);return new TransformStream({transform(n,i){let a=new Uint8Array(r.length+n.byteLength);for(a.set(r),a.set(new Uint8Array(n),r.length),r=a;r.length>=e;){let o=r.slice(0,e);i.enqueue(o),t?.(o.byteLength),r=r.slice(e)}},flush(n){r.length>0&&(n.enqueue(r),t?.(r.byteLength))}})};function xe(e){return globalThis.ReadableStream&&e instanceof ReadableStream}function Ie(e){return!!(xe(e)||Pe(e))}var Et=(e,t)=>{let r=new URL(e);for(let[n,i]of Object.entries(t.params))r.searchParams.set(n,i);return r.searchParams.set("vercel-blob-delegation",t.delegationToken),r.searchParams.set("vercel-blob-signature",t.signature),r.toString()};var Ae=!1,_e,Ee;try{((_e=process.env.DEBUG)!=null&&_e.includes("blob")||(Ee=process.env.NEXT_PUBLIC_DEBUG)!=null&&Ee.includes("blob"))&&(Ae=!0)}catch{}function g(e,...t){Ae&&console.debug(`vercel-blob: ${e}`,...t)}var Ue,Ut=(Ue=globalThis.DOMException)!=null?Ue:(()=>{try{atob("~")}catch(e){return Object.getPrototypeOf(e).constructor}})(),Tt=Object.prototype.toString,kt=e=>Tt.call(e)==="[object Error]",Rt=new Set(["network error","Failed to fetch","NetworkError when attempting to fetch resource.","The Internet connection appears to be offline.","Load failed","Network request failed","fetch failed","terminated"]);function St(e){return e&&kt(e)&&e.name==="TypeError"&&typeof e.message=="string"?e.message==="Load failed"?e.stack===void 0:Rt.has(e.message):!1}var Me=typeof x=="function",Ct=Me&&Le,Bt=64*1024,Te=async({input:e,init:t,onUploadProgress:r})=>{g("using fetch");let n;if(t.body)if(r){let a=await Be(t.body),o=0,l=_t(Bt,c=>{o+=c,r(o)});n=a.pipeThrough(l)}else n=t.body;let i=Le&&n&&Ie(n)?"half":void 0;return x(e,{...t,...t.body?{body:n}:{},duplex:i})},ke=typeof XMLHttpRequest<"u",Re=async({input:e,init:t,onUploadProgress:r})=>{g("using xhr");let n=null;return t.body&&(xe(t.body)?n=await new Response(t.body).blob():n=t.body),new Promise((i,a)=>{let o=new XMLHttpRequest;if(o.open(t.method||"GET",e.toString(),!0),r&&o.upload.addEventListener("progress",l=>{l.lengthComputable&&r(l.loaded)}),o.onload=()=>{var l;if((l=t.signal)!=null&&l.aborted){a(new DOMException("The user aborted the request.","AbortError"));return}let c=new Headers;o.getAllResponseHeaders().trim().split(/[\r\n]+/).forEach(m=>{let p=m.split(": "),h=p.shift(),w=p.join(": ");h&&c.set(h.toLowerCase(),w)});let u=new Response(o.response,{status:o.status,statusText:o.statusText,headers:c});i(u)},o.onerror=()=>{a(new TypeError("Network request failed"))},o.ontimeout=()=>{a(new TypeError("Network request timed out"))},o.onabort=()=>{a(new DOMException("The user aborted a request.","AbortError"))},t.headers&&new Headers(t.headers).forEach((c,f)=>{o.setRequestHeader(f,c)}),t.signal&&(t.signal.addEventListener("abort",()=>{o.abort()}),t.signal.aborted)){o.abort();return}o.send(n)})},Pt=async({input:e,init:t,onUploadProgress:r})=>{if(r){if(Ct)return Te({input:e,init:t,onUploadProgress:r});if(ke)return Re({input:e,init:t,onUploadProgress:r})}if(Me)return Te({input:e,init:t});if(ke)return Re({input:e,init:t});throw new Error("No request implementation available")},Se=950,Lt=class extends s{constructor(){super("Access denied, please provide a valid token for this resource.")}},xt=class extends s{constructor(e){super(e??"OIDC is enabled for this project, but not for this token's environment.")}},It=class extends s{constructor(e){super(`Content type mismatch, ${e}.`)}},Ot=class extends s{constructor(e){super(`Pathname mismatch, ${e}. Check the pathname used in upload() or put() matches the one from the client token.`)}},At=class extends s{constructor(){super("Client token has expired.")}},Mt=class extends s{constructor(e){super(`File is too large, ${e}.`)}},Nt=class extends s{constructor(){super("This store does not exist.")}},$t=class extends s{constructor(){super("This store has been suspended.")}},Ne=class extends s{constructor(){super("Unknown error, please visit https://vercel.com/help.")}},Vt=class extends s{constructor(){super("The requested blob does not exist")}},G=class extends s{constructor(){super("The blob service is currently not available. Please try again.")}},Dt=class extends s{constructor(e){super(`Too many requests please lower the number of concurrent requests ${e?` - try again in ${e} seconds`:""}.`),this.retryAfter=e??0}},Ht=class extends s{constructor(){super("The request was aborted.")}},Ft=class extends s{constructor(){super("Precondition failed: ETag mismatch.")}},qt=12;function Gt(){let e=null;try{e=process.env.VERCEL_BLOB_API_VERSION_OVERRIDE||process.env.NEXT_PUBLIC_VERCEL_BLOB_API_VERSION_OVERRIDE}catch{}return`${e??qt}`}function Kt(){try{let e=process.env.VERCEL_BLOB_RETRIES||"10";return parseInt(e,10)}catch{return 10}}function zt(e){let t=e.headers.get("retry-after");return new Dt(t?parseInt(t,10):void 0)}async function Wt(e){var t,r,n;let i,a;try{let l=await e.json();i=(r=(t=l.error)==null?void 0:t.code)!=null?r:"unknown_error",a=(n=l.error)==null?void 0:n.message}catch{i="unknown_error"}a?.includes("contentType")&&a.includes("is not allowed")&&(i="content_type_not_allowed"),a?.includes('"pathname"')&&a.includes("does not match the token payload")&&(i="client_token_pathname_mismatch"),a==="Token expired"&&(i="client_token_expired"),a?.includes("the file length cannot be greater than")&&(i="file_too_large"),a?.startsWith("OIDC is enabled for this project, but not for the")&&a.includes("environment.")&&(i="oidc_environment_not_allowed");let o;switch(i){case"store_suspended":o=new $t;break;case"forbidden":o=new Lt;break;case"oidc_environment_not_allowed":o=new xt(a);break;case"content_type_not_allowed":o=new It(a);break;case"client_token_pathname_mismatch":o=new Ot(a);break;case"client_token_expired":o=new At;break;case"file_too_large":o=new Mt(a);break;case"not_found":o=new Vt;break;case"client_token_not_allowed":o=new s(a??"This operation is not available when using a client token. Use a read\u2013write or OIDC token on the server.");break;case"store_not_found":o=new Nt;break;case"bad_request":o=new s(a??"Bad request");break;case"service_unavailable":o=new G;break;case"rate_limited":o=zt(e);break;case"precondition_failed":o=new Ft;break;default:o=new Ne;break}return{code:i,error:o}}async function K(e,t,r){let n=Gt(),i=vt(r),a=i.kind==="presigned"?void 0:i.token,o=Xt(),l=Q(e);r?.presignedUrlPayload&&(l=Et(l,r.presignedUrlPayload));let c=`${i.storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`,f=0,u=0,m=0,p=r?.onUploadProgress||Yt();t.body&&p&&(u=q(t.body)),r?.onUploadProgress&&r.onUploadProgress({loaded:0,total:u,percentage:0});let h=await(0,Oe.default)(async w=>{let S;try{S=await Pt({input:l,init:{...t,headers:{"x-api-blob-request-id":c,"x-vercel-blob-store-id":i.storeId,"x-api-blob-request-attempt":String(f),"x-api-version":n,...p?{"x-content-length":String(u)}:{},...a!==void 0?{authorization:`Bearer ${a}`}:{},...o,...t.headers}},onUploadProgress:r?.onUploadProgress?b=>{var T;let k=u!==0?u:b;m=b;let C=u>0?Number((b/k*100).toFixed(2)):0;C===100&&u>0||(T=r.onUploadProgress)==null||T.call(r,{loaded:b,total:k,percentage:C})}:void 0})}catch(b){if(b instanceof Ut&&b.name==="AbortError"){w(new Ht);return}if(St(b))throw b;if(b instanceof TypeError){w(b);return}throw b}if(S.ok)return S;let{code:U,error:_}=await Wt(S);if(U==="unknown_error"||U==="service_unavailable"||U==="internal_server_error")throw _;w(_)},{retries:Kt(),onRetry:w=>{w instanceof Error&&g(`retrying API request to ${e}`,w.message),f=f+1}});if(!h)throw new Ne;return r?.onUploadProgress&&r.onUploadProgress({loaded:m,total:m,percentage:100}),await h.json()}function Xt(){let e={};try{"VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API"in process.env&&process.env.VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API!==void 0?e["x-proxy-through-alternative-api"]=process.env.VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API:"NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API"in process.env&&process.env.NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API!==void 0&&(e["x-proxy-through-alternative-api"]=process.env.NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API)}catch{}return e}function Yt(){try{return process.env.VERCEL_BLOB_USE_X_CONTENT_LENGTH==="1"}catch{return!1}}var P={cacheControlMaxAge:"x-cache-control-max-age",addRandomSuffix:"x-add-random-suffix",allowOverwrite:"x-allow-overwrite",contentType:"x-content-type",access:"x-vercel-blob-access",ifMatch:"x-if-match"};function A(e,t){let r={};if(r[P.access]=t.access,e.includes("contentType")&&t.contentType&&(r[P.contentType]=t.contentType),e.includes("addRandomSuffix")&&t.addRandomSuffix!==void 0&&(r[P.addRandomSuffix]=t.addRandomSuffix?"1":"0"),e.includes("ifMatch")&&t.ifMatch){if(t.allowOverwrite===!1)throw new s("ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.");r[P.ifMatch]=t.ifMatch,e.includes("allowOverwrite")&&t.allowOverwrite===void 0&&(r[P.allowOverwrite]="1")}return e.includes("allowOverwrite")&&t.allowOverwrite!==void 0&&(r[P.allowOverwrite]=t.allowOverwrite?"1":"0"),e.includes("cacheControlMaxAge")&&t.cacheControlMaxAge!==void 0&&(r[P.cacheControlMaxAge]=t.cacheControlMaxAge.toString()),r}async function M({pathname:e,options:t,extraChecks:r,getToken:n}){if(!e)throw new s("pathname is required");if(e.length>Se)throw new s(`pathname is too long, maximum length is ${Se}`);for(let i of yt)if(e.includes(i))throw new s(`pathname cannot contain "${i}", please encode it if needed`);if(!t)throw new s("missing options, see usage");if(t.access!=="public"&&t.access!=="private")throw new s('access must be "private" or "public", see https://vercel.com/docs/vercel-blob');return r&&r(t),n&&(t.token=await n(e,t)),t}function $e({allowedOptions:e,getToken:t,extraChecks:r}){return async(n,i,a)=>{let o=await M({pathname:n,options:a,extraChecks:r,getToken:t}),l=A(e,o);return te({uploadId:o.uploadId,key:o.key,pathname:n,headers:l,options:o,parts:i})}}async function te({uploadId:e,key:t,pathname:r,parts:n,headers:i,options:a}){let o=new URLSearchParams({pathname:r});try{let l=await K(`/mpu?${o.toString()}`,{method:"POST",headers:{...i,"content-type":"application/json","x-mpu-action":"complete","x-mpu-upload-id":e,"x-mpu-key":encodeURIComponent(t)},body:JSON.stringify(n),signal:a.abortSignal},a);return g("mpu: complete",l),l}catch(l){throw l instanceof TypeError&&(l.message==="Failed to fetch"||l.message==="fetch failed")?new G:l}}function Ve({allowedOptions:e,getToken:t,extraChecks:r}){return async(n,i)=>{let a=await M({pathname:n,options:i,extraChecks:r,getToken:t}),o=A(e,a),l=await re(n,o,a);return{key:l.key,uploadId:l.uploadId}}}async function re(e,t,r){g("mpu: create","pathname:",e);let n=new URLSearchParams({pathname:e});try{let i=await K(`/mpu?${n.toString()}`,{method:"POST",headers:{...t,"x-mpu-action":"create"},signal:r.abortSignal},r);return g("mpu: create",i),i}catch(i){throw i instanceof TypeError&&(i.message==="Failed to fetch"||i.message==="fetch failed")?new G:i}}function He({allowedOptions:e,getToken:t,extraChecks:r}){return async(n,i,a)=>{let o=await M({pathname:n,options:a,extraChecks:r,getToken:t}),l=A(e,o);if(ee(i))throw new s("Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.");return{etag:(await ne({uploadId:o.uploadId,key:o.key,pathname:n,part:{blob:i,partNumber:o.partNumber},headers:l,options:o})).etag,partNumber:o.partNumber}}}async function ne({uploadId:e,key:t,pathname:r,headers:n,options:i,internalAbortController:a=new AbortController,part:o}){var l,c,f;let u=new URLSearchParams({pathname:r}),m=K(`/mpu?${u.toString()}`,{signal:a.signal,method:"POST",headers:{...n,"x-mpu-action":"upload","x-mpu-key":encodeURIComponent(t),"x-mpu-upload-id":e,"x-mpu-part-number":o.partNumber.toString()},body:o.blob},i);function p(){a.abort()}(l=i.abortSignal)!=null&&l.aborted?p():(c=i.abortSignal)==null||c.addEventListener("abort",p);let h=await m;return(f=i.abortSignal)==null||f.removeEventListener("abort",p),h}var Fe=typeof window<"u"?6:8,Z=8*1024*1024,O=Fe*Z*2;function Jt({uploadId:e,key:t,pathname:r,stream:n,headers:i,options:a,totalToLoad:o}){g("mpu: upload init","key:",t);let l=new AbortController;return new Promise((c,f)=>{let u=[],m=[],p=n.getReader(),h=0,w=!1,S=1,U=!1,_=0,b=!1,T=0,k=[],C=0,W,oe={};a.onUploadProgress&&(W=(0,De.default)(()=>{var d;let E=Object.values(oe).reduce((V,D)=>V+D,0),R=o||E,I=o>0?Number(((E/o||E)*100).toFixed(2)):0;(d=a.onUploadProgress)==null||d.call(a,{loaded:E,total:R,percentage:I})},150)),ae().catch($);async function ae(){for(g("mpu: upload read start","activeUploads:",h,"currentBytesInMemory:",`${y(_)}/${y(O)}`,"bytesSent:",y(T)),w=!0;_<O&&!U;)try{let{value:d,done:E}=await p.read();if(E){b=!0,g("mpu: upload read consumed the whole stream"),k.length>0?(u.push({partNumber:S++,blob:new Blob(k,{type:"application/octet-stream"})}),X()):h===0&&(p.releaseLock(),c(m)),w=!1;return}_+=d.byteLength;let R=0;for(;R<d.byteLength;){let I=Z-C,V=Math.min(R+I,d.byteLength),D=d.slice(R,V);k.push(D),C+=D.byteLength,R=V,C===Z&&(u.push({partNumber:S++,blob:new Blob(k,{type:"application/octet-stream"})}),k=[],C=0,X())}}catch(d){$(d)}g("mpu: upload read end","activeUploads:",h,"currentBytesInMemory:",`${y(_)}/${y(O)}`,"bytesSent:",y(T)),w=!1}async function Ye(d){h++,g("mpu: upload send part start","partNumber:",d.partNumber,"size:",d.blob.size,"activeUploads:",h,"currentBytesInMemory:",`${y(_)}/${y(O)}`,"bytesSent:",y(T));try{let E=a.onUploadProgress?I=>{oe[d.partNumber]=I.loaded,W&&W()}:void 0,R=await ne({uploadId:e,key:t,pathname:r,headers:i,options:{...a,onUploadProgress:E},internalAbortController:l,part:d});if(g("mpu: upload send part end","partNumber:",d.partNumber,"activeUploads",h,"currentBytesInMemory:",`${y(_)}/${y(O)}`,"bytesSent:",y(T)),U)return;if(m.push({partNumber:d.partNumber,etag:R.etag}),_-=d.blob.size,h--,T+=d.blob.size,u.length>0&&X(),b){h===0&&(p.releaseLock(),c(m));return}w||ae().catch($)}catch(E){$(E)}}function X(){if(!U)for(g("send parts","activeUploads",h,"partsToUpload",u.length);h<Fe&&u.length>0;){let d=u.shift();d&&Ye(d)}}function $(d){U||(U=!0,l.abort(),p.releaseLock(),d instanceof TypeError&&(d.message==="Failed to fetch"||d.message==="fetch failed")?f(new G):f(d))}})}function qe({allowedOptions:e,getToken:t,extraChecks:r}){return async(n,i)=>{let a=await M({pathname:n,options:i,extraChecks:r,getToken:t}),o=A(e,a),l=await re(n,o,a);return{key:l.key,uploadId:l.uploadId,async uploadPart(c,f){if(ee(f))throw new s("Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.");return{etag:(await ne({uploadId:l.uploadId,key:l.key,pathname:n,part:{partNumber:c,blob:f},headers:o,options:a})).etag,partNumber:c}},async complete(c){return te({uploadId:l.uploadId,key:l.key,pathname:n,parts:c,headers:o,options:a})}}}}async function jt(e,t,r,n){g("mpu: init","pathname:",e,"headers:",r);let i={...n,onUploadProgress:void 0};if(n.maximumSizeInBytes!==void 0&&!Ie(t)&&q(t)>n.maximumSizeInBytes)throw new s(`Body size of ${q(t)} bytes exceeds the maximum allowed size of ${n.maximumSizeInBytes} bytes`);let a=await re(e,r,i),o=q(t),l=await Be(t),c=await Jt({uploadId:a.uploadId,key:a.key,pathname:e,stream:l,headers:r,options:n,totalToLoad:o});return await te({uploadId:a.uploadId,key:a.key,pathname:e,parts:c,headers:r,options:i})}function z({allowedOptions:e,getToken:t,getPresignedUrlPayload:r,extraChecks:n}){return async function(a,o,l){if(!o)throw new s("body is required");if(ee(o))throw new s("Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.");let c=await M({pathname:a,options:l,extraChecks:n,getToken:t}),f=await r?.(a,c),u={...c,presignedUrlPayload:f},m=A(e,c);if(c.multipart===!0)return jt(a,o,m,u);let p=c.onUploadProgress?(0,Ge.default)(c.onUploadProgress,100):void 0,h=new URLSearchParams({pathname:a}),w=await K(`/?${h.toString()}`,{method:"PUT",body:o,headers:m,signal:c.abortSignal},{...u,onUploadProgress:p});return{url:w.url,downloadUrl:w.downloadUrl,pathname:w.pathname,contentType:w.contentType,contentDisposition:w.contentDisposition,etag:w.etag}}}var hr=365*24*60*60;var mr=new TextEncoder;function N(e){return function(r){if(!r.token.startsWith("vercel_blob_client_"))throw new s(`${e} must be called with a client token`);if(r.addRandomSuffix!==void 0||r.allowOverwrite!==void 0||r.cacheControlMaxAge!==void 0)throw new s(`${e} doesn't allow \`addRandomSuffix\`, \`cacheControlMaxAge\` or \`allowOverwrite\`. Configure these options at the server side when generating client tokens.`)}}var Nr=z({allowedOptions:["contentType"],extraChecks:N("client/`put`")}),$r=Ve({allowedOptions:["contentType"],extraChecks:N("client/`createMultipartUpload`")}),Vr=qe({allowedOptions:["contentType"],extraChecks:N("client/`createMultipartUpload`")}),Dr=He({allowedOptions:["contentType"],extraChecks:N("client/`multipartUpload`")}),Hr=$e({allowedOptions:["contentType"],extraChecks:N("client/`completeMultipartUpload`")}),Ke=z({allowedOptions:["contentType"],extraChecks(e){if(e.handleUploadUrl===void 0)throw new s("client/`upload` requires the 'handleUploadUrl' parameter");if(e.addRandomSuffix!==void 0||e.allowOverwrite!==void 0||e.cacheControlMaxAge!==void 0||e.ifMatch!==void 0)throw new s("client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating client tokens.")},async getToken(e,t){var r,n;return Qt({handleUploadUrl:t.handleUploadUrl,pathname:e,clientPayload:(r=t.clientPayload)!=null?r:null,multipart:(n=t.multipart)!=null?n:!1,headers:t.headers})}}),Fr=z({allowedOptions:["contentType"],extraChecks(e){if(e.handleUploadUrl===void 0)throw new s("client/`upload` requires the 'handleUploadUrl' parameter");if(e.addRandomSuffix!==void 0||e.allowOverwrite!==void 0||e.cacheControlMaxAge!==void 0||e.ifMatch!==void 0)throw new s("client/`uploadPresigned` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating presigned URLs.")},async getPresignedUrlPayload(e,t){var r,n;return Zt({pathname:e,handleUploadUrl:t.handleUploadUrl,clientPayload:(r=t.clientPayload)!=null?r:null,multipart:(n=t.multipart)!=null?n:!1,headers:t.headers})}});var ze={generateClientToken:"blob.generate-client-token",generatePresignedUrl:"blob.generate-presigned-url",uploadCompleted:"blob.upload-completed"};async function Qt(e){let{handleUploadUrl:t,pathname:r}=e,n=Xe(t)?t:We(t),i={type:ze.generateClientToken,payload:{pathname:r,clientPayload:e.clientPayload,multipart:e.multipart}},a=await x(n,{method:"POST",body:JSON.stringify(i),headers:{"content-type":"application/json",...e.headers},signal:e.abortSignal});if(!a.ok)throw new s("Failed to  retrieve the client token");try{let{clientToken:o}=await a.json();return o}catch{throw new s("Failed to retrieve the client token")}}async function Zt(e){let{handleUploadUrl:t,pathname:r}=e,n=Xe(t)?t:We(t),i={type:ze.generatePresignedUrl,payload:{pathname:r,clientPayload:e.clientPayload,multipart:e.multipart}},a=await x(n,{method:"POST",body:JSON.stringify(i),headers:{"content-type":"application/json",...e.headers},signal:e.abortSignal});if(!a.ok)throw new s("Failed to retrieve the presigned URL");try{let{presignedUrlPayload:o}=await a.json();if(o)return o;throw new s("Missing presignedUrlPayload")}catch(o){throw o instanceof s?o:new s("Failed to retrieve the presigned URL")}}function We(e){return new URL(e,location.href).href}function Xe(e){try{return!!new URL(e)}catch{return!1}}return rt(er);})();
+/*! Bundled license information:
+
+is-buffer/index.js:
+  (*!
+   * Determine if an object is a Buffer
+   *
+   * @author   Feross Aboukhadijeh <https://feross.org>
+   * @license  MIT
+   *)
+
+@vercel/blob/dist/chunk-3D2SZ6M2.js:
+  (*!
+   * bytes
+   * Copyright(c) 2012-2014 TJ Holowaychuk
+   * Copyright(c) 2015 Jed Watson
+   * MIT Licensed
+   *)
+*/
+
+</script>
+<script>
+  var ENDPOINT = "/api/instagram-publish";
+  var IG_PROFILE = "https://www.instagram.com/topbanker99/";
+
+  var files = [];
+  var settings = { dur: 3000, fade: 500, bg: 'blur', music: 'default' };
+  var W = 1080, H = 1920;
+  var busy = false;
+
+  var dropEl = document.getElementById("drop");
+  var fileEl = document.getElementById("file");
+  var thumbsEl = document.getElementById("thumbs");
+  var metaEl = document.getElementById("meta");
+  var capEl = document.getElementById("caption");
+  var capMetaEl = document.getElementById("capmeta");
+  var secretEl = document.getElementById("secret");
+  var rememberEl = document.getElementById("remember");
+  var publishEl = document.getElementById("publish");
+  var statusEl = document.getElementById("status");
+  var canvas = document.getElementById("canvas");
+  var ctx = canvas.getContext("2d");
+  var makeBtn = document.getElementById("makeBtn");
+  var previewBtn = document.getElementById("previewBtn");
+  var progressEl = document.getElementById("progress");
+  var barFill = document.getElementById("barFill");
+  var ptext = document.getElementById("ptext");
+  var resultEl = document.getElementById("result");
+  var errbox = document.getElementById("errbox");
+  var musicFileEl = document.getElementById("musicFile");
+  var musicNameEl = document.getElementById("musicName");
+
+  try { var saved = localStorage.getItem("tb_publish_secret"); if (saved) { secretEl.value = saved; rememberEl.checked = true; } } catch (e) {}
+
+  function naturalCompare(a, b) { return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }); }
+  function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+  function addFiles(list) {
+    if (busy) return;
+    var arr = Array.prototype.slice.call(list);
+    var loads = [];
+    arr.forEach(function (f) {
+      if (!/^image\/(jpeg|png)$/.test(f.type)) return;
+      if (files.some(function (x) { return x.name === f.name && x.file.size === f.size; })) return;
+      var url = URL.createObjectURL(f);
+      var img = new Image();
+      var rec = { id: uid(), file: f, url: url, name: f.name, imgEl: img };
+      files.push(rec);
+      loads.push(new Promise(function (res) { img.onload = function () { res(); }; img.onerror = function () { res(); }; img.src = url; }));
+    });
+    Promise.all(loads).then(function () {
+      files.sort(function (a, b) { return naturalCompare(a.name, b.name); });
+      render();
+    });
+  }
+  function move(id, dir) { if (busy) return; var i = files.findIndex(function (x){return x.id===id;}); var j=i+dir;
+    if (i<0||j<0||j>=files.length) return; var t=files[i]; files[i]=files[j]; files[j]=t; render(); }
+  function remove(id) { if (busy) return; var i=files.findIndex(function (x){return x.id===id;});
+    if (i>=0){ URL.revokeObjectURL(files[i].url); files.splice(i,1); render(); } }
+
+  function updateMeta() {
+    if (files.length === 0) { metaEl.textContent = ""; return; }
+    var totalKB = files.reduce(function (s, f) { return s + f.file.size; }, 0) / 1024;
+    var sizeText = totalKB > 1024 ? (totalKB / 1024).toFixed(1) + "MB" : Math.round(totalKB) + "KB";
+    var holdTotal = files.length * settings.dur;
+    var fadeTotal = settings.fade > 0 ? (files.length - 1) * settings.fade : 0;
+    var secs = ((holdTotal + fadeTotal) / 1000).toFixed(1);
+    var warn = (totalKB / 1024) > 4 ? "  ·  발행 시 4MB 이하 권장" : "";
+    metaEl.textContent = files.length + "장 선택됨  ·  합계 " + sizeText + "  ·  쇼츠 길이 약 " + secs + "초" + warn;
+  }
+  function render() {
+    thumbsEl.innerHTML = "";
+    files.forEach(function (f, idx) {
+      var div = document.createElement("div"); div.className = "thumb";
+      div.innerHTML = '<span class="order">' + (idx + 1) + '</span><img src="' + f.url + '" alt="" />' +
+        '<div class="controls"><button data-act="left" ' + (idx === 0 ? "disabled" : "") + '>\u25C0</button>' +
+        '<button class="del" data-act="del">\u2715</button>' +
+        '<button data-act="right" ' + (idx === files.length - 1 ? "disabled" : "") + '>\u25B6</button></div>';
+      div.querySelector('[data-act="left"]').onclick = function () { move(f.id, -1); };
+      div.querySelector('[data-act="right"]').onclick = function () { move(f.id, 1); };
+      div.querySelector('[data-act="del"]').onclick = function () { remove(f.id); };
+      thumbsEl.appendChild(div);
+    });
+    updateMeta(); drawStatic();
+  }
+
+  dropEl.addEventListener("click", function () { if (!busy) fileEl.click(); });
+  fileEl.addEventListener("change", function (e) { addFiles(e.target.files); fileEl.value = ""; });
+  ["dragenter","dragover"].forEach(function (ev){ dropEl.addEventListener(ev,function(e){e.preventDefault();dropEl.classList.add("over");}); });
+  ["dragleave","drop"].forEach(function (ev){ dropEl.addEventListener(ev,function(e){e.preventDefault();dropEl.classList.remove("over");}); });
+  dropEl.addEventListener("drop", function (e){ if (e.dataTransfer&&e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+
+  capEl.addEventListener("input", function () {
+    var n = capEl.value.length; var tags = (capEl.value.match(/#[^\s#]+/g) || []).length;
+    capMetaEl.textContent = n + "자" + (tags ? "  ·  해시태그 " + tags + "개" : "");
+    capMetaEl.style.color = n > 2200 ? "#C0392B" : "";
+  });
+
+  function setStatus(kind, html) { statusEl.className = "status show " + kind; statusEl.innerHTML = html; }
+  function fileToDataURL(file) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader(); r.onload = function () { resolve(r.result); };
+      r.onerror = function () { reject(new Error(file.name + " 읽기 실패")); }; r.readAsDataURL(file);
+    });
+  }
+
+  publishEl.addEventListener("click", function () {
+    if (busy) return;
+    var secret = secretEl.value.trim();
+    if (!secret) { setStatus("err", "발행 비밀키를 입력하세요."); return; }
+    if (files.length < 2 || files.length > 10) { setStatus("err", "인스타 발행은 이미지 2~10장이 필요합니다. (현재 " + files.length + "장)"); return; }
+    if (capEl.value.length > 2200) { setStatus("err", "본문이 2,200자를 초과했습니다."); return; }
+    try { if (rememberEl.checked) localStorage.setItem("tb_publish_secret", secret); else localStorage.removeItem("tb_publish_secret"); } catch (e) {}
+    publishEl.disabled = true;
+    setStatus("work", '<span class="spinner"></span>이미지를 준비하고 있습니다…');
+    Promise.all(files.map(function (f) { return fileToDataURL(f.file).then(function (data) { return { filename: f.name, data: data }; }); }))
+    .then(function (images) {
+      setStatus("work", '<span class="spinner"></span>업로드 후 인스타그램에 발행 중입니다. 최대 1분 정도 걸릴 수 있습니다…');
+      return fetch(ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", "x-publish-secret": secret },
+        body: JSON.stringify({ caption: capEl.value, images: images }) });
+    }).then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+    .then(function (r) {
+      if (r.ok && r.data && r.data.ok) {
+        setStatus("ok", "발행 완료되었습니다. (" + r.data.count + "장)<br />게시물 확인: <a href=\"" + IG_PROFILE + "\" target=\"_blank\" rel=\"noopener\">instagram.com/topbanker99</a>");
+      } else {
+        var d = r.data || {}; var msg = d.error;
+        if (msg && typeof msg === "object") msg = msg.message || JSON.stringify(msg);
+        var step = d.step ? " [" + d.step + "]" : "";
+        setStatus("err", "발행 실패" + step + ": " + (msg || "알 수 없는 오류"));
+      }
+    }).catch(function (err) { setStatus("err", "요청 중 오류가 발생했습니다: " + (err && err.message ? err.message : err)); })
+    .then(function () { publishEl.disabled = false; });
+  });
+
+  // ===== 옵션 =====
+  function wireOpts(containerId, key, parse) {
+    var el = document.getElementById(containerId);
+    el.querySelectorAll('.opt').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (busy) return;
+        el.querySelectorAll('.opt').forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active'); settings[key] = parse(b); updateMeta(); drawStatic();
+      });
+    });
+  }
+  wireOpts('durOpts', 'dur', function (b) { return parseInt(b.dataset.dur, 10); });
+  wireOpts('fadeOpts', 'fade', function (b) { return parseInt(b.dataset.fade, 10); });
+  wireOpts('bgOpts', 'bg', function (b) { return b.dataset.bg; });
+
+  // ===== 음악 =====
+  var audioCtx = null, defaultBuffer = null, customBuffer = null, customName = '';
+  function ensureCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+  function b64ToArrayBuffer(uri) {
+    var b64 = uri.split(',')[1]; var bin = atob(b64); var len = bin.length;
+    var bytes = new Uint8Array(len); for (var i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i); return bytes.buffer;
+  }
+  function loadDefaultBuffer() {
+    if (defaultBuffer) return Promise.resolve(defaultBuffer);
+    var c = ensureCtx();
+    return fetch('/music.mp3').then(function (r) { return r.arrayBuffer(); }).then(function (ab) { return c.decodeAudioData(ab); }).then(function (buf) { defaultBuffer = buf; return buf; });
+  }
+  function getMusicBuffer() {
+    if (settings.music === 'none') return Promise.resolve(null);
+    if (settings.music === 'custom') { if (customBuffer) return Promise.resolve(customBuffer); return loadDefaultBuffer(); }
+    return loadDefaultBuffer();
+  }
+  document.querySelectorAll('#musicOpts .opt').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (busy) return;
+      document.querySelectorAll('#musicOpts .opt').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active'); settings.music = b.dataset.music;
+      if (settings.music === 'custom') { if (!customBuffer) musicFileEl.click(); musicNameEl.textContent = customBuffer ? ('선택된 음악: ' + customName) : '음악 파일을 선택하세요.'; }
+      else if (settings.music === 'none') { musicNameEl.textContent = '쇼츠에 음악이 들어가지 않습니다.'; }
+      else { musicNameEl.textContent = '기본음악(락 펑키 Chunk)이 들어갑니다.'; }
+    });
+  });
+  musicFileEl.addEventListener('change', function (e) {
+    var f = e.target.files[0]; if (!f) return;
+    var c = ensureCtx();
+    f.arrayBuffer().then(function (ab) { return c.decodeAudioData(ab); })
+      .then(function (buf) { customBuffer = buf; customName = f.name; settings.music = 'custom'; musicNameEl.textContent = '선택된 음악: ' + customName; })
+      .catch(function () { musicNameEl.textContent = '음악 파일을 읽지 못했습니다. mp3·m4a·wav를 사용하세요.'; });
+    musicFileEl.value = '';
+  });
+
+  // ===== 캔버스 그리기 =====
+  function fit(iw, ih, tw, th, mode) {
+    var ir = iw / ih, tr = tw / th, w, h;
+    if (mode === 'cover') { if (ir > tr) { h = th; w = th * ir; } else { w = tw; h = tw / ir; } }
+    else { if (ir > tr) { w = tw; h = tw / ir; } else { h = th; w = th * ir; } }
+    return { w: w, h: h, x: (tw - w) / 2, y: (th - h) / 2 };
+  }
+  function roundRectPath(c, x, y, w, h, r) {
+    c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+  function renderSlide(img) {
+    var c = document.createElement('canvas'); c.width = W; c.height = H; var x = c.getContext('2d');
+    var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    if (settings.bg === 'white') { x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, W, H); }
+    else if (settings.bg === 'navy') { x.fillStyle = '#1B3A5C'; x.fillRect(0, 0, W, H); }
+    else { x.fillStyle = '#1B3A5C'; x.fillRect(0, 0, W, H);
+      try { x.save(); x.filter = 'blur(36px) brightness(0.55)'; var bf = fit(iw, ih, W, H, 'cover'); x.drawImage(img, bf.x, bf.y, bf.w, bf.h); x.restore(); } catch (e) {} }
+    var margin = 24; var f = fit(iw, ih, W - margin * 2, H - margin * 2, 'contain');
+    var cardX = (W - f.w) / 2, cardY = (H - f.h) / 2, radius = 26;
+    x.save(); x.shadowColor = 'rgba(0,0,0,0.35)'; x.shadowBlur = 40; x.shadowOffsetY = 10;
+    roundRectPath(x, cardX, cardY, f.w, f.h, radius); x.fillStyle = '#000'; x.fill(); x.restore();
+    x.save(); roundRectPath(x, cardX, cardY, f.w, f.h, radius); x.clip(); x.drawImage(img, cardX, cardY, f.w, f.h); x.restore();
+    return c;
+  }
+  function drawStatic() {
+    ctx.fillStyle = settings.bg === 'white' ? '#FFFFFF' : '#1B3A5C'; ctx.fillRect(0, 0, W, H);
+    if (files.length > 0 && files[0].imgEl && files[0].imgEl.complete && (files[0].imgEl.naturalWidth || 0) > 0) {
+      ctx.drawImage(renderSlide(files[0].imgEl), 0, 0);
+    } else { ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '46px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('미리보기', W / 2, H / 2); }
+  }
+  function buildSegments(n) {
+    var segs = [];
+    for (var i = 0; i < n; i++) { segs.push({ type: 'hold', i: i, dur: settings.dur });
+      if (i < n - 1 && settings.fade > 0) segs.push({ type: 'fade', from: i, to: i + 1, dur: settings.fade }); }
+    return segs;
+  }
+  function prerenderAll() { return files.map(function (f) { return renderSlide(f.imgEl); }); }
+  function showErr(msg) { errbox.className = 'errbox show'; errbox.textContent = msg; }
+  function clearErr() { errbox.className = 'errbox'; errbox.textContent = ''; }
+  function runTimeline(slides, opts) {
+    return new Promise(function (resolve) {
+      var segs = buildSegments(slides.length);
+      var total = segs.reduce(function (s, x) { return s + x.dur; }, 0);
+      var start = performance.now();
+      function frame(now) {
+        var t = now - start; if (t >= total) t = total - 1;
+        var acc = 0, drawn = false;
+        for (var k = 0; k < segs.length; k++) {
+          var s = segs[k];
+          if (t < acc + s.dur) {
+            ctx.fillStyle = settings.bg === 'white' ? '#FFFFFF' : '#1B3A5C'; ctx.fillRect(0, 0, W, H);
+            if (s.type === 'hold') { ctx.globalAlpha = 1; ctx.drawImage(slides[s.i], 0, 0); }
+            else { var p = (t - acc) / s.dur; ctx.globalAlpha = 1; ctx.drawImage(slides[s.from], 0, 0); ctx.globalAlpha = p; ctx.drawImage(slides[s.to], 0, 0); ctx.globalAlpha = 1; }
+            drawn = true; break;
+          }
+          acc += s.dur;
+        }
+        if (!drawn) { ctx.globalAlpha = 1; ctx.drawImage(slides[slides.length - 1], 0, 0); }
+        if (opts && opts.onProgress) opts.onProgress(Math.min(1, (now - start) / total));
+        if (now - start < total) { requestAnimationFrame(frame); }
+        else { ctx.globalAlpha = 1; ctx.fillStyle = settings.bg === 'white' ? '#FFFFFF' : '#1B3A5C'; ctx.fillRect(0, 0, W, H); ctx.drawImage(slides[slides.length - 1], 0, 0); resolve(); }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  // 미리보기(소리 포함)
+  previewBtn.addEventListener('click', function () {
+    if (busy) return; clearErr();
+    if (files.length < 1) { showErr('이미지를 먼저 추가하세요.'); return; }
+    busy = true; previewBtn.disabled = true; makeBtn.disabled = true; publishEl.disabled = true;
+    var slides = prerenderAll();
+    getMusicBuffer().then(function (buf) {
+      var srcNode = null;
+      if (buf) {
+        var c = ensureCtx(); if (c.state === 'suspended') c.resume();
+        srcNode = c.createBufferSource(); srcNode.buffer = buf; srcNode.loop = true;
+        var g = c.createGain(); g.gain.value = 0.85; srcNode.connect(g); g.connect(c.destination); srcNode.start();
+      }
+      runTimeline(slides, null).then(function () {
+        if (srcNode) { try { srcNode.stop(); } catch (e) {} }
+        busy = false; previewBtn.disabled = false; makeBtn.disabled = false; publishEl.disabled = false; drawStatic();
+      });
+    });
+  });
+
+  function pickMime() {
+    var cands = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    for (var i = 0; i < cands.length; i++) { if (window.MediaRecorder && MediaRecorder.isTypeSupported(cands[i])) return cands[i]; }
+    return '';
+  }
+
+  makeBtn.addEventListener('click', function () {
+    if (busy) return; clearErr(); resultEl.className = 'result'; resultEl.innerHTML = '';
+    if (files.length < 2) { showErr('영상을 만들려면 이미지 2장 이상이 필요합니다.'); return; }
+    if (!window.MediaRecorder) { showErr('이 브라우저는 영상 녹화를 지원하지 않습니다. 크롬 최신 버전을 권장합니다.'); return; }
+    var mime = pickMime();
+    if (!mime) { showErr('지원하는 영상 포맷이 없습니다. 크롬 최신 버전을 사용해 주세요.'); return; }
+    var ext = mime.indexOf('mp4') >= 0 ? 'mp4' : 'webm';
+
+    busy = true; makeBtn.disabled = true; previewBtn.disabled = true; publishEl.disabled = true;
+    progressEl.className = 'progress show'; barFill.style.width = '0%'; ptext.textContent = '슬라이드를 준비하는 중…';
+
+    setTimeout(function () {
+      function finishErr(msg) { progressEl.className = 'progress'; busy = false; makeBtn.disabled = false; previewBtn.disabled = false; publishEl.disabled = false; showErr(msg); }
+      var slides;
+      try { slides = prerenderAll(); } catch (e) { finishErr('이미지 처리 중 오류: ' + (e.message || e)); return; }
+
+      getMusicBuffer().then(function (buf) {
+        var stream;
+        try { stream = canvas.captureStream(30); } catch (e) { finishErr('캔버스 녹화를 시작할 수 없습니다: ' + (e.message || e)); return; }
+
+        var srcNode = null, gainNode = null, c = null;
+        if (buf) {
+          try {
+            c = ensureCtx(); if (c.state === 'suspended') c.resume();
+            var dest = c.createMediaStreamDestination();
+            srcNode = c.createBufferSource(); srcNode.buffer = buf; srcNode.loop = true;
+            gainNode = c.createGain(); gainNode.gain.value = 0.85;
+            srcNode.connect(gainNode); gainNode.connect(dest); gainNode.connect(c.destination);
+            dest.stream.getAudioTracks().forEach(function (tr) { stream.addTrack(tr); });
+            srcNode.start();
+          } catch (e) { /* 음악 실패해도 영상은 진행 */ srcNode = null; gainNode = null; }
+        }
+
+        var chunks = [], rec;
+        try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10000000 }); }
+        catch (e) { finishErr('녹화기 생성 실패: ' + (e.message || e)); return; }
+
+        rec.ondataavailable = function (ev) { if (ev.data && ev.data.size > 0) chunks.push(ev.data); };
+        rec.onstop = function () {
+          if (srcNode) { try { srcNode.stop(); } catch (e) {} }
+          var blob = new Blob(chunks, { type: mime }); var url = URL.createObjectURL(blob); lastVideoBlob = blob; lastVideoExt = ext; if (reelBtn) { reelBtn.disabled = false; }
+          var sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+          var now = new Date(), pad = function (n) { return String(n).padStart(2, '0'); };
+          var fname = 'topbanker-shorts-' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()) + '.' + ext;
+          resultEl.className = 'result show';
+          resultEl.innerHTML = '<strong>영상이 완성되었습니다.</strong> (' + ext.toUpperCase() + ' · ' + sizeMB + 'MB)<br />아래 버튼으로 저장한 뒤 유튜브에 업로드하세요.<br /><a class="dl" href="' + url + '" download="' + fname + '">영상 다운로드</a>';
+          progressEl.className = 'progress'; busy = false; makeBtn.disabled = false; previewBtn.disabled = false; publishEl.disabled = false; drawStatic();
+        };
+
+        ptext.textContent = '영상을 녹화하는 중입니다. 탭을 그대로 두세요…';
+        rec.start();
+        runTimeline(slides, { onProgress: function (p) { barFill.style.width = Math.round(p * 100) + '%'; ptext.textContent = '영상을 녹화하는 중… ' + Math.round(p * 100) + '%'; } })
+        .then(function () {
+          if (gainNode && c) { try { var nowt = c.currentTime; gainNode.gain.setValueAtTime(gainNode.gain.value, nowt); gainNode.gain.linearRampToValueAtTime(0, nowt + 0.35); } catch (e) {} }
+          setTimeout(function () { try { rec.stop(); } catch (e) {} }, 400);
+        });
+      });
+    }, 60);
+  });
+
+
+  // ===== 인스타 릴스 발행 =====
+  var REEL_ENDPOINT = "/api/instagram-reel";
+  var lastVideoBlob = null, lastVideoExt = 'mp4';
+  var reelBtn = document.getElementById('reelBtn');
+  var reelProgress = document.getElementById('reelProgress');
+  var reelBar = document.getElementById('reelBar');
+  var reelPtext = document.getElementById('reelPtext');
+  var reelStatus = document.getElementById('reelStatus');
+  function setReelStatus(kind, html) { reelStatus.className = 'status show ' + kind; reelStatus.innerHTML = html; }
+
+  reelBtn.addEventListener('click', function () {
+    if (busy) return;
+    if (!lastVideoBlob) { setReelStatus('err', '먼저 쇼츠 영상을 만들어 주세요.'); return; }
+    var secret = secretEl.value.trim();
+    if (!secret) { setReelStatus('err', '발행 비밀키를 입력하세요.'); return; }
+    if (typeof VercelBlobClient === 'undefined' || !VercelBlobClient.upload) { setReelStatus('err', '업로드 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.'); return; }
+
+    busy = true; reelBtn.disabled = true; makeBtn.disabled = true; previewBtn.disabled = true; publishEl.disabled = true;
+    reelStatus.className = 'status'; reelStatus.innerHTML = '';
+    reelProgress.className = 'progress show'; reelBar.style.width = '0%'; reelPtext.textContent = '영상을 업로드하는 중…';
+
+    var now = new Date(), pad = function (n) { return String(n).padStart(2, '0'); };
+    var pathname = 'reels/' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()) + '.' + lastVideoExt;
+    var ctype = lastVideoExt === 'mp4' ? 'video/mp4' : 'video/webm';
+
+    VercelBlobClient.upload(pathname, lastVideoBlob, {
+      access: 'public',
+      handleUploadUrl: '/api/blob-upload-token',
+      contentType: ctype,
+      clientPayload: JSON.stringify({ secret: secret }),
+      onUploadProgress: function (p) {
+        var pct = (p && p.percentage != null) ? Math.round(p.percentage) : null;
+        if (pct != null) { reelBar.style.width = pct + '%'; reelPtext.textContent = '영상을 업로드하는 중… ' + pct + '%'; }
+      }
+    }).then(function (result) {
+      reelBar.style.width = '100%';
+      reelPtext.textContent = '인스타그램에서 영상을 처리하고 발행하는 중입니다. 몇 분 걸릴 수 있어요…';
+      return fetch(REEL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-publish-secret': secret },
+        body: JSON.stringify({ caption: capEl.value, videoUrl: result.url })
+      });
+    }).then(function (res) {
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (r) {
+      reelProgress.className = 'progress';
+      if (r.ok && r.data && r.data.ok) {
+        setReelStatus('ok', '릴스가 발행되었습니다.<br />확인: <a href="' + IG_PROFILE + '" target="_blank" rel="noopener">instagram.com/topbanker99</a>');
+      } else {
+        var d = r.data || {}; var msg = d.error;
+        if (msg && typeof msg === 'object') msg = msg.message || JSON.stringify(msg);
+        var step = d.step ? ' [' + d.step + ']' : '';
+        setReelStatus('err', '릴스 발행 실패' + step + ': ' + (msg || '알 수 없는 오류'));
+      }
+    }).catch(function (err) {
+      reelProgress.className = 'progress';
+      setReelStatus('err', '오류: ' + (err && err.message ? err.message : err));
+    }).then(function () {
+      busy = false; reelBtn.disabled = false; makeBtn.disabled = false; previewBtn.disabled = false; publishEl.disabled = false;
+    });
+  });
+
+
+  // ===== 이미 만든 영상 직접 올려 릴스 발행 =====
+  var pickedVideo = null;
+  var vdrop = document.getElementById('vdrop');
+  var vfile = document.getElementById('vfile');
+  var vinfo = document.getElementById('vinfo');
+  var vreelBtn = document.getElementById('vreelBtn');
+  var vreelProgress = document.getElementById('vreelProgress');
+  var vreelBar = document.getElementById('vreelBar');
+  var vreelPtext = document.getElementById('vreelPtext');
+  var vreelStatus = document.getElementById('vreelStatus');
+  function setVStatus(kind, html) { vreelStatus.className = 'status show ' + kind; vreelStatus.innerHTML = html; }
+
+  function fmtSize(bytes) {
+    if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + 'MB';
+    return Math.max(1, Math.round(bytes / 1024)) + 'KB';
+  }
+  function videoCtype(file) {
+    var t = (file.type || '').toLowerCase();
+    if (t === 'video/mp4' || t === 'video/quicktime' || t === 'video/webm') return t;
+    var name = (file.name || '').toLowerCase();
+    if (name.slice(-4) === '.mov') return 'video/quicktime';
+    if (name.slice(-5) === '.webm') return 'video/webm';
+    return 'video/mp4';
+  }
+  function videoExt(file) {
+    var name = (file.name || '').toLowerCase();
+    var m = name.match(/\.(mp4|mov|webm|m4v)$/);
+    return m ? m[1] : 'mp4';
+  }
+
+  function setPickedVideo(file) {
+    if (!file) return;
+    var isVideo = (file.type || '').indexOf('video/') === 0 || /\.(mp4|mov|webm|m4v)$/i.test(file.name || '');
+    if (!isVideo) { setVStatus('err', '영상 파일(MP4·MOV·WEBM)만 올릴 수 있습니다.'); return; }
+    if (file.size > 300 * 1024 * 1024) { setVStatus('err', '영상이 너무 큽니다. 300MB 이하 파일만 올릴 수 있어요. (현재 ' + fmtSize(file.size) + ')'); return; }
+    pickedVideo = file;
+    vreelStatus.className = 'status'; vreelStatus.innerHTML = '';
+    vinfo.innerHTML = '▶ <strong>' + (file.name || '영상') + '</strong> · ' + fmtSize(file.size) + ' · 선택됨';
+    vreelBtn.disabled = false;
+  }
+
+  vdrop.addEventListener('click', function () { vfile.click(); });
+  vfile.addEventListener('change', function (e) { if (e.target.files && e.target.files[0]) setPickedVideo(e.target.files[0]); });
+  vdrop.addEventListener('dragover', function (e) { e.preventDefault(); vdrop.classList.add('over'); });
+  vdrop.addEventListener('dragleave', function () { vdrop.classList.remove('over'); });
+  vdrop.addEventListener('drop', function (e) {
+    e.preventDefault(); vdrop.classList.remove('over');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) setPickedVideo(e.dataTransfer.files[0]);
+  });
+
+  vreelBtn.addEventListener('click', function () {
+    if (busy) return;
+    if (!pickedVideo) { setVStatus('err', '먼저 올릴 영상을 선택해 주세요.'); return; }
+    var secret = secretEl.value.trim();
+    if (!secret) { setVStatus('err', '발행 비밀키를 입력하세요.'); return; }
+    if (typeof VercelBlobClient === 'undefined' || !VercelBlobClient.upload) { setVStatus('err', '업로드 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.'); return; }
+
+    busy = true; vreelBtn.disabled = true; reelBtn.disabled = true; makeBtn.disabled = true; previewBtn.disabled = true; publishEl.disabled = true;
+    vreelStatus.className = 'status'; vreelStatus.innerHTML = '';
+    vreelProgress.className = 'progress show'; vreelBar.style.width = '0%'; vreelPtext.textContent = '영상을 업로드하는 중…';
+
+    var now = new Date(), pad = function (n) { return String(n).padStart(2, '0'); };
+    var pathname = 'reels/upload-' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()) + '.' + videoExt(pickedVideo);
+
+    VercelBlobClient.upload(pathname, pickedVideo, {
+      access: 'public',
+      handleUploadUrl: '/api/blob-upload-token',
+      contentType: videoCtype(pickedVideo),
+      clientPayload: JSON.stringify({ secret: secret }),
+      onUploadProgress: function (p) {
+        var pct = (p && p.percentage != null) ? Math.round(p.percentage) : null;
+        if (pct != null) { vreelBar.style.width = pct + '%'; vreelPtext.textContent = '영상을 업로드하는 중… ' + pct + '%'; }
+      }
+    }).then(function (result) {
+      vreelBar.style.width = '100%';
+      vreelPtext.textContent = '인스타그램에서 영상을 처리하고 발행하는 중입니다. 몇 분 걸릴 수 있어요…';
+      return fetch(REEL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-publish-secret': secret },
+        body: JSON.stringify({ caption: capEl.value, videoUrl: result.url })
+      });
+    }).then(function (res) {
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (r) {
+      vreelProgress.className = 'progress';
+      if (r.ok && r.data && r.data.ok) {
+        setVStatus('ok', '릴스가 발행되었습니다.<br />확인: <a href="' + IG_PROFILE + '" target="_blank" rel="noopener">instagram.com/topbanker99</a>');
+      } else {
+        var d = r.data || {}; var msg = d.error;
+        if (msg && typeof msg === 'object') msg = msg.message || JSON.stringify(msg);
+        var step = d.step ? ' [' + d.step + ']' : '';
+        setVStatus('err', '릴스 발행 실패' + step + ': ' + (msg || '알 수 없는 오류') + '<br /><span style="color:var(--muted)">세로 9:16 · MP4(H.264/AAC) 형식인지, 길이가 너무 길지 않은지 확인해 보세요.</span>');
+      }
+    }).catch(function (err) {
+      vreelProgress.className = 'progress';
+      setVStatus('err', '오류: ' + (err && err.message ? err.message : err));
+    }).then(function () {
+      busy = false; vreelBtn.disabled = false; reelBtn.disabled = false; makeBtn.disabled = false; previewBtn.disabled = false; publishEl.disabled = false;
+    });
+  });
+
+  drawStatic();
+</script>
+</body>
+</html>
