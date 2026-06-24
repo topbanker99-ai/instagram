@@ -13,6 +13,7 @@
     "api/essay-cron.js": { "maxDuration": 300, "includeFiles": "node_modules/@napi-rs/canvas-linux-x64-gnu/**" },
     "api/corp-cron.js": { "maxDuration": 300, "includeFiles": "node_modules/@napi-rs/canvas-linux-x64-gnu/**" },
     "api/reel-cron.js": { "maxDuration": 300, "includeFiles": "node_modules/**" },
+    "api/promo-reel.js": { "maxDuration": 300, "includeFiles": "node_modules/**" },
     "api/token-refresh-cron.js": { "maxDuration": 60 },
     "api/blob-cleanup-cron.js": { "maxDuration": 60 }
   },
