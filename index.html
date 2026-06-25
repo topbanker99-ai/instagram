@@ -819,10 +819,12 @@ is-buffer/index.js:
           headers: { 'Content-Type': 'application/json', 'x-publish-secret': secret },
           body: JSON.stringify({ script: script, images: imgs, bg: vrBg, caption: caption, dryrun: !!dryrun })
         });
-      }).then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+      }).then(function (res) {
+        return res.text().then(function (txt) { var d = null; try { d = JSON.parse(txt); } catch (e) {} return { ok: res.ok, status: res.status, data: d, raw: txt }; });
+      })
         .then(function (r) {
-          var d = r.data || {};
-          if (r.ok && d.ok) {
+          var d = r.data;
+          if (r.ok && d && d.ok) {
             if (dryrun && d.videoUrl) {
               video.src = d.videoUrl; wrap.style.display = 'block';
               pmeta.textContent = '영상 ' + (d.durationSec ? d.durationSec.toFixed(1) : '?') + '초 · 내레이션 ' + (d.narrDur ? d.narrDur.toFixed(1) + '초' : '측정실패') + ' · 카드 ' + (d.sceneCount || '?') + '장';
@@ -830,9 +832,12 @@ is-buffer/index.js:
             } else {
               setVR('ok', '릴스가 발행되었습니다.<br />확인: <a href="' + IGP + '" target="_blank" rel="noopener">instagram.com/topbanker99</a>');
             }
-          } else {
+          } else if (d && d.error) {
             var msg = d.error; if (msg && typeof msg === 'object') msg = msg.message || JSON.stringify(msg);
-            setVR('err', '실패: ' + (msg || '알 수 없는 오류') + '<br /><span style="color:var(--muted)">카드 이미지가 올라가 있는지, ELEVENLABS_API_KEY 환경변수가 설정돼 있는지 확인해 보세요.</span>');
+            setVR('err', '실패: ' + msg + '<br /><span style="color:var(--muted)">카드 이미지가 올라가 있는지, ELEVENLABS_API_KEY 환경변수가 설정돼 있는지 확인해 보세요.</span>');
+          } else {
+            var snip = (r.raw || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+            setVR('err', '서버 오류 (HTTP ' + r.status + '): ' + (snip || '응답 없음') + '<br /><span style="color:var(--muted)">함수가 처리 중 종료됐어요(메모리 부족 또는 시간 초과 가능). 잠시 후 다시 시도하거나, 카드 수·스크립트 길이를 줄여 보세요.</span>');
           }
         }).catch(function (e) { setVR('err', '오류: ' + (e && e.message ? e.message : e)); })
         .then(function () { vrBusy = false; previewBtn.disabled = false; publishBtn.disabled = false; });
