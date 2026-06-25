@@ -248,14 +248,17 @@ async function buildReelCards(canvasMod, opts) {
     log('chunks=' + chunks.length + ' textLens=' + texts.map(t => t.length).join(','));
 
     // 3) 카드별 음성 → 오디오 세그먼트(정확히 카드 길이로 패딩) + 카드 표시 길이
+    //    ※ 음성 생성(ElevenLabs)을 카드별 순차가 아니라 "동시(병렬)" 호출 → 카드 늘어도 시간 폭증 방지
+    log('tts parallel start n=' + texts.filter(Boolean).length);
+    const voiceBufs = await Promise.all(texts.map(function (t) { return t ? genVoice(t) : Promise.resolve(null); }));
+    log('tts parallel done');
     const segPaths = [], durs = []; let narrTotal = 0;
     for (let i = 0; i < n; i++) {
       const seg = path.join(dir, `a${i}.m4a`);
-      if (texts[i]) {
-        log('card ' + i + ' tts start');
-        const vp = path.join(dir, `v${i}.mp3`); fs.writeFileSync(vp, await genVoice(texts[i]));
+      if (voiceBufs[i]) {
+        const vp = path.join(dir, `v${i}.mp3`); fs.writeFileSync(vp, voiceBufs[i]);
         const vd = ffdur(vp) || 3; const cd = vd + GAP;
-        log('card ' + i + ' tts done dur=' + vd.toFixed(2));
+        log('card ' + i + ' dur=' + vd.toFixed(2));
         execFileSync(FFMPEG, ['-y', '-i', vp, '-af', 'apad', '-t', cd.toFixed(2), '-ar', '44100', '-ac', '2', '-c:a', 'aac', '-b:a', '128k', seg], { stdio: 'ignore' });
         durs.push(cd); narrTotal += vd;
       } else {
