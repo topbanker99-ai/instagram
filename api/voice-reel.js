@@ -248,10 +248,17 @@ async function buildReelCards(canvasMod, opts) {
     log('chunks=' + chunks.length + ' textLens=' + texts.map(t => t.length).join(','));
 
     // 3) 카드별 음성 → 오디오 세그먼트(정확히 카드 길이로 패딩) + 카드 표시 길이
-    //    ※ 음성 생성(ElevenLabs)을 카드별 순차가 아니라 "동시(병렬)" 호출 → 카드 늘어도 시간 폭증 방지
-    log('tts parallel start n=' + texts.filter(Boolean).length);
-    const voiceBufs = await Promise.all(texts.map(function (t) { return t ? genVoice(t) : Promise.resolve(null); }));
-    log('tts parallel done');
+    //    ※ ElevenLabs 동시 요청 제한(3개)에 맞춰 한 번에 최대 3개씩 묶어서 병렬 호출
+    const TTS_CONCURRENCY = 3;
+    log('tts start n=' + texts.filter(Boolean).length + ' conc=' + TTS_CONCURRENCY);
+    const voiceBufs = new Array(n).fill(null);
+    for (let s = 0; s < n; s += TTS_CONCURRENCY) {
+      const batch = [];
+      for (let i = s; i < Math.min(s + TTS_CONCURRENCY, n); i++) {
+        if (texts[i]) batch.push(genVoice(texts[i]).then(function (buf) { voiceBufs[i] = buf; }));
+      }
+      if (batch.length) { await Promise.all(batch); log('tts batch ' + (s / TTS_CONCURRENCY + 1) + ' done'); }
+    }
     const segPaths = [], durs = []; let narrTotal = 0;
     for (let i = 0; i < n; i++) {
       const seg = path.join(dir, `a${i}.m4a`);
