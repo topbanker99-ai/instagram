@@ -232,12 +232,10 @@ async function buildReelCards(canvasMod, opts) {
   const GAP = 0.45;   // 카드 사이 숨 쉴 틈(초)
   const ffdur = (p) => { let d = 0; try { execFileSync(FFMPEG, ['-i', p], { stdio: ['ignore', 'ignore', 'pipe'] }); } catch (e) { const s = (e.stderr || '').toString(); const m = s.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/); if (m) d = (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]); } return d; };
   try {
-    // 1) 카드 이미지 디코드
-    const imgs = [];
-    for (const dataUrl of opts.images) { const b64 = String(dataUrl).split(',').pop(); imgs.push(await loadImage(Buffer.from(b64, 'base64'))); }
-    const n = imgs.length;
+    // 1) 카드 수 확인 (이미지는 메모리 절약 위해 렌더 단계에서 한 장씩 디코드/해제)
+    const n = Array.isArray(opts.images) ? opts.images.length : 0;
     if (!n) throw new Error('카드 이미지가 없습니다.');
-    log('images decoded n=' + n);
+    log('start n=' + n);
 
     // 2) 스크립트를 '---' 로 카드 수만큼 분리 (남으면 마지막 카드에 합침)
     let chunks = String(opts.script || '').split(/\n?\s*-{3,}\s*\n?/).map(s => s.trim()).filter(Boolean);
@@ -263,7 +261,7 @@ async function buildReelCards(canvasMod, opts) {
     for (let i = 0; i < n; i++) {
       const seg = path.join(dir, `a${i}.m4a`);
       if (voiceBufs[i]) {
-        const vp = path.join(dir, `v${i}.mp3`); fs.writeFileSync(vp, voiceBufs[i]);
+        const vp = path.join(dir, `v${i}.mp3`); fs.writeFileSync(vp, voiceBufs[i]); voiceBufs[i] = null;
         const vd = ffdur(vp) || 3; const cd = vd + GAP;
         log('card ' + i + ' dur=' + vd.toFixed(2));
         execFileSync(FFMPEG, ['-y', '-i', vp, '-af', 'apad', '-t', cd.toFixed(2), '-ar', '44100', '-ac', '2', '-c:a', 'aac', '-b:a', '128k', seg], { stdio: 'ignore' });
@@ -283,16 +281,20 @@ async function buildReelCards(canvasMod, opts) {
     execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'alist.txt'), '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-ac', '2', narrPath], { stdio: 'ignore' });
     log('narration assembled');
 
-    // 5) 카드 프레임 렌더 + concat 리스트 (각 카드 = 해당 음성 길이만큼 표시)
+    // 5) 카드 프레임 렌더 — 메모리 절약: 이미지를 한 장씩 디코드 → 렌더 → 즉시 해제
     let listTxt = '', total = 0, lastPng = null;
     for (let i = 0; i < n; i++) {
-      const buf = renderCardFrame(createCanvas, imgs[i], opts.bg || 'blur');
+      const b64 = String(opts.images[i]).split(',').pop();
+      let img = await loadImage(Buffer.from(b64, 'base64'));
+      const buf = renderCardFrame(createCanvas, img, opts.bg || 'blur');
+      img = null; opts.images[i] = null;   // 디코드 이미지·원본 문자열 즉시 해제
       const p = path.join(dir, `f${i}.png`); fs.writeFileSync(p, buf); lastPng = p;
       listTxt += `file '${p}'\nduration ${durs[i].toFixed(2)}\n`; total += durs[i];
+      log('frame ' + i + ' rendered');
     }
     listTxt += `file '${lastPng}'\n`;   // concat demuxer: 마지막 프레임 고정
     fs.writeFileSync(path.join(dir, 'list.txt'), listTxt);
-    log('frames rendered n=' + n + ' total=' + total.toFixed(1));
+    log('frames done total=' + total.toFixed(1));
 
     // 6) 배경음악
     const music = require('./reel-music.js');
@@ -312,7 +314,7 @@ async function buildReelCards(canvasMod, opts) {
     execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'list.txt'),
       '-stream_loop', String(loops), '-i', musicPath, '-i', narrPath,
       '-filter_complex', fc, '-map', '[v]', '-map', '[a]',
-      '-c:v', 'libx264', '-preset', 'veryfast', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-r', '30',
+      '-c:v', 'libx264', '-preset', 'veryfast', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-r', '30', '-threads', '2',
       '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2), '-movflags', '+faststart', out], { stdio: 'ignore' });
     log('mux done');
     return { mp4: fs.readFileSync(out), durationSec: total, narrDur: narrTotal, sceneCount: n };
