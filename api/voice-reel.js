@@ -97,6 +97,32 @@ function renderScene(createCanvas, sc) {
   return canvas.toBuffer('image/png');
 }
 
+/* ───────── 카드 프레임 렌더 (업로드 카드 이미지 → 1080×1920, 배경 흐림/네이비/흰색) ───────── */
+function renderCardFrame(createCanvas, img, bg) {
+  const c = createCanvas(W, H); const ctx = c.getContext('2d');
+  const iw = img.width || img.naturalWidth || 1080, ih = img.height || img.naturalHeight || 1080;
+  // 배경
+  if (bg === 'white') { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H); }
+  else if (bg === 'navy') { ctx.fillStyle = '#1B3A5C'; ctx.fillRect(0, 0, W, H); }
+  else { // blur: 다운스케일 → 업스케일(부드러운 흐림) + 어둡게
+    ctx.fillStyle = COL.BG; ctx.fillRect(0, 0, W, H);
+    const sw = 60, sh = Math.max(1, Math.round(sw * ih / iw));
+    const small = createCanvas(sw, sh); const sx = small.getContext('2d');
+    sx.drawImage(img, 0, 0, sw, sh);
+    const r = Math.max(W / sw, H / sh), dw = sw * r, dh = sh * r;
+    ctx.imageSmoothingEnabled = true; try { ctx.imageSmoothingQuality = 'high'; } catch (e) {}
+    ctx.drawImage(small, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, H);
+  }
+  // 전경 카드 (contain, 중앙, 둥근 모서리 + 그림자)
+  const margin = 24, r = Math.min((W - margin * 2) / iw, (H - margin * 2) / ih);
+  const dw = iw * r, dh = ih * r, dx = (W - dw) / 2, dy = (H - dh) / 2, rad = 26;
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 10;
+  roundRect(ctx, dx, dy, dw, dh, rad); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+  ctx.save(); roundRect(ctx, dx, dy, dw, dh, rad); ctx.clip(); ctx.drawImage(img, dx, dy, dw, dh); ctx.restore();
+  return c.toBuffer('image/png');
+}
+
 /* ───────── ElevenLabs 내레이션 생성 ───────── */
 async function genVoice(text) {
   if (!process.env.ELEVENLABS_API_KEY) throw new Error('ELEVENLABS_API_KEY 환경변수가 없습니다.');
@@ -189,6 +215,87 @@ async function buildReel(canvasMod, opts) {
   }
 }
 
+/* ───────── 카드 + 음성 릴스 (업로드 카드 이미지 + 카드별 ElevenLabs 음성) ─────────
+   스크립트를 '---'(하이픈 3개 이상)로 카드 수만큼 분리 → 카드별 음성 생성/길이 측정 →
+   각 카드를 "그 카드 음성이 끝날 때까지" 표시. 음성이 카드 전환 타이밍을 결정한다. */
+async function buildReelCards(canvasMod, opts) {
+  const { createCanvas, loadImage } = canvasMod;
+  const os = require('os'), fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
+  let FFMPEG = process.env.FFMPEG_PATH || require('ffmpeg-static');
+  if (!process.env.FFMPEG_PATH) {
+    try { const tmpBin = path.join(os.tmpdir(), 'ffmpeg'); if (!fs.existsSync(tmpBin)) fs.copyFileSync(FFMPEG, tmpBin); fs.chmodSync(tmpBin, 0o755); FFMPEG = tmpBin; }
+    catch (e) { try { fs.chmodSync(FFMPEG, 0o755); } catch (_) {} }
+  }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vrcard-'));
+  const GAP = 0.45;   // 카드 사이 숨 쉴 틈(초)
+  const ffdur = (p) => { let d = 0; try { execFileSync(FFMPEG, ['-i', p], { stdio: ['ignore', 'ignore', 'pipe'] }); } catch (e) { const s = (e.stderr || '').toString(); const m = s.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/); if (m) d = (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]); } return d; };
+  try {
+    // 1) 카드 이미지 디코드
+    const imgs = [];
+    for (const dataUrl of opts.images) { const b64 = String(dataUrl).split(',').pop(); imgs.push(await loadImage(Buffer.from(b64, 'base64'))); }
+    const n = imgs.length;
+    if (!n) throw new Error('카드 이미지가 없습니다.');
+
+    // 2) 스크립트를 '---' 로 카드 수만큼 분리 (남으면 마지막 카드에 합침)
+    let chunks = String(opts.script || '').split(/\n?\s*-{3,}\s*\n?/).map(s => s.trim()).filter(Boolean);
+    if (chunks.length === 0) chunks = [String(opts.script || '').trim()];
+    const texts = [];
+    for (let i = 0; i < n; i++) texts.push(chunks[i] || '');
+    if (chunks.length > n) { const extra = chunks.slice(n).join(' '); texts[n - 1] = (texts[n - 1] ? texts[n - 1] + ' ' : '') + extra; }
+
+    // 3) 카드별 음성 → 오디오 세그먼트(정확히 카드 길이로 패딩) + 카드 표시 길이
+    const segPaths = [], durs = []; let narrTotal = 0;
+    for (let i = 0; i < n; i++) {
+      const seg = path.join(dir, `a${i}.m4a`);
+      if (texts[i]) {
+        const vp = path.join(dir, `v${i}.mp3`); fs.writeFileSync(vp, await genVoice(texts[i]));
+        const vd = ffdur(vp) || 3; const cd = vd + GAP;
+        execFileSync(FFMPEG, ['-y', '-i', vp, '-af', 'apad', '-t', cd.toFixed(2), '-ar', '44100', '-ac', '2', '-c:a', 'aac', '-b:a', '128k', seg], { stdio: 'ignore' });
+        durs.push(cd); narrTotal += vd;
+      } else {
+        const cd = 2.5;
+        execFileSync(FFMPEG, ['-y', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo', '-t', cd.toFixed(2), '-c:a', 'aac', '-b:a', '128k', seg], { stdio: 'ignore' });
+        durs.push(cd);
+      }
+      segPaths.push(seg);
+    }
+
+    // 4) 오디오 세그먼트 이어붙여 내레이션 트랙(재인코딩으로 이음새 제거)
+    fs.writeFileSync(path.join(dir, 'alist.txt'), segPaths.map(p => `file '${p}'`).join('\n') + '\n');
+    const narrPath = path.join(dir, 'narration.m4a');
+    execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'alist.txt'), '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-ac', '2', narrPath], { stdio: 'ignore' });
+
+    // 5) 카드 프레임 렌더 + concat 리스트 (각 카드 = 해당 음성 길이만큼 표시)
+    let listTxt = '', total = 0, lastPng = null;
+    for (let i = 0; i < n; i++) {
+      const buf = renderCardFrame(createCanvas, imgs[i], opts.bg || 'blur');
+      const p = path.join(dir, `f${i}.png`); fs.writeFileSync(p, buf); lastPng = p;
+      listTxt += `file '${p}'\nduration ${durs[i].toFixed(2)}\n`; total += durs[i];
+    }
+    listTxt += `file '${lastPng}'\n`;   // concat demuxer: 마지막 프레임 고정
+    fs.writeFileSync(path.join(dir, 'list.txt'), listTxt);
+
+    // 6) 배경음악
+    const music = require('./reel-music.js');
+    const musicPath = path.join(dir, 'music.mp3'); fs.writeFileSync(musicPath, Buffer.from(music.split(',')[1], 'base64'));
+
+    // 7) 합성: 영상 + (음악 22% + 내레이션) 믹스, 끝부분 페이드아웃
+    const out = path.join(dir, 'out.mp4');
+    const fadeOut = Math.max(0.1, total - 0.6).toFixed(2);
+    const afOut = Math.max(0.1, total - 1.0).toFixed(2);
+    const fc = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,format=yuv420p,fade=t=out:st=${fadeOut}:d=0.5[v];`
+      + `[1:a]volume=0.22[bg];[2:a]volume=1.0[vo];[bg][vo]amix=inputs=2:duration=longest:normalize=0,afade=t=out:st=${afOut}:d=1.0[a]`;
+    execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'list.txt'),
+      '-stream_loop', '-1', '-i', musicPath, '-i', narrPath,
+      '-filter_complex', fc, '-map', '[v]', '-map', '[a]',
+      '-c:v', 'libx264', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-r', '30',
+      '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2), '-movflags', '+faststart', out], { stdio: 'ignore' });
+    return { mp4: fs.readFileSync(out), durationSec: total, narrDur: narrTotal, sceneCount: n };
+  } finally {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
+  }
+}
+
 /* ───────── 폰트 ───────── */
 let fontsReady = false;
 async function ensureFonts(GlobalFonts) {
@@ -247,15 +354,21 @@ module.exports = async (req, res) => {
     ? (body.showSubtitle !== false && body.showSubtitle !== '0' && body.showSubtitle !== 0)
     : (req.query.sub !== '0');
   const caption = (isPost ? body.caption : req.query.caption) || DEFAULT_CAPTION;
+  // 카드 모드: 카드 이미지 배열(base64 dataURL)이 오면 "카드+음성", 없으면 기존 "자막+음성"
+  const images = (isPost && Array.isArray(body.images))
+    ? body.images.map(function (x) { return String(x && x.data ? x.data : x); }).filter(Boolean)
+    : [];
+  const bg = (isPost ? body.bg : req.query.bg) || 'blur';
 
   try {
     if (!script || !String(script).trim()) return out(400, { ok: false, error: '스크립트(script)가 비었습니다.' });
     if (!process.env.IG_USER_ID || !process.env.IG_ACCESS_TOKEN) return out(500, { ok: false, error: 'IG_USER_ID/IG_ACCESS_TOKEN 환경변수가 없습니다.' });
     let canvasMod; try { canvasMod = require('@napi-rs/canvas'); } catch (e) { return out(500, { ok: false, error: '@napi-rs/canvas 로드 실패: ' + e.message }); }
     const { GlobalFonts } = canvasMod;
-    await ensureFonts(GlobalFonts);
+    if (images.length === 0) await ensureFonts(GlobalFonts);   // 카드 모드는 서버에서 텍스트를 안 그리므로 폰트 불필요
 
-    const { mp4, durationSec, narrDur, sceneCount } = await buildReel(canvasMod, { script: String(script), showSubtitle, caption });
+    const builder = images.length ? buildReelCards : buildReel;
+    const { mp4, durationSec, narrDur, sceneCount } = await builder(canvasMod, { script: String(script), showSubtitle, caption, images, bg });
     const blob = await put(`reels/voice-${Date.now()}.mp4`, mp4, { access: 'public', contentType: 'video/mp4', addRandomSuffix: true, token: process.env.BLOB_READ_WRITE_TOKEN });
     const videoUrl = blob.url;
 
