@@ -221,11 +221,13 @@ async function buildReel(canvasMod, opts) {
 async function buildReelCards(canvasMod, opts) {
   const { createCanvas, loadImage } = canvasMod;
   const os = require('os'), fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
+  const log = (m) => { try { console.log('[vreel-card] ' + m); } catch (e) {} };
   let FFMPEG = process.env.FFMPEG_PATH || require('ffmpeg-static');
   if (!process.env.FFMPEG_PATH) {
     try { const tmpBin = path.join(os.tmpdir(), 'ffmpeg'); if (!fs.existsSync(tmpBin)) fs.copyFileSync(FFMPEG, tmpBin); fs.chmodSync(tmpBin, 0o755); FFMPEG = tmpBin; }
     catch (e) { try { fs.chmodSync(FFMPEG, 0o755); } catch (_) {} }
   }
+  log('start ffmpeg=' + FFMPEG + ' images=' + (opts.images ? opts.images.length : 0) + ' bg=' + (opts.bg || 'blur'));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vrcard-'));
   const GAP = 0.45;   // 카드 사이 숨 쉴 틈(초)
   const ffdur = (p) => { let d = 0; try { execFileSync(FFMPEG, ['-i', p], { stdio: ['ignore', 'ignore', 'pipe'] }); } catch (e) { const s = (e.stderr || '').toString(); const m = s.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/); if (m) d = (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]); } return d; };
@@ -235,6 +237,7 @@ async function buildReelCards(canvasMod, opts) {
     for (const dataUrl of opts.images) { const b64 = String(dataUrl).split(',').pop(); imgs.push(await loadImage(Buffer.from(b64, 'base64'))); }
     const n = imgs.length;
     if (!n) throw new Error('카드 이미지가 없습니다.');
+    log('images decoded n=' + n);
 
     // 2) 스크립트를 '---' 로 카드 수만큼 분리 (남으면 마지막 카드에 합침)
     let chunks = String(opts.script || '').split(/\n?\s*-{3,}\s*\n?/).map(s => s.trim()).filter(Boolean);
@@ -242,14 +245,17 @@ async function buildReelCards(canvasMod, opts) {
     const texts = [];
     for (let i = 0; i < n; i++) texts.push(chunks[i] || '');
     if (chunks.length > n) { const extra = chunks.slice(n).join(' '); texts[n - 1] = (texts[n - 1] ? texts[n - 1] + ' ' : '') + extra; }
+    log('chunks=' + chunks.length + ' textLens=' + texts.map(t => t.length).join(','));
 
     // 3) 카드별 음성 → 오디오 세그먼트(정확히 카드 길이로 패딩) + 카드 표시 길이
     const segPaths = [], durs = []; let narrTotal = 0;
     for (let i = 0; i < n; i++) {
       const seg = path.join(dir, `a${i}.m4a`);
       if (texts[i]) {
+        log('card ' + i + ' tts start');
         const vp = path.join(dir, `v${i}.mp3`); fs.writeFileSync(vp, await genVoice(texts[i]));
         const vd = ffdur(vp) || 3; const cd = vd + GAP;
+        log('card ' + i + ' tts done dur=' + vd.toFixed(2));
         execFileSync(FFMPEG, ['-y', '-i', vp, '-af', 'apad', '-t', cd.toFixed(2), '-ar', '44100', '-ac', '2', '-c:a', 'aac', '-b:a', '128k', seg], { stdio: 'ignore' });
         durs.push(cd); narrTotal += vd;
       } else {
@@ -259,11 +265,13 @@ async function buildReelCards(canvasMod, opts) {
       }
       segPaths.push(seg);
     }
+    log('all voices done durs=' + durs.map(d => d.toFixed(1)).join(','));
 
     // 4) 오디오 세그먼트 이어붙여 내레이션 트랙(재인코딩으로 이음새 제거)
     fs.writeFileSync(path.join(dir, 'alist.txt'), segPaths.map(p => `file '${p}'`).join('\n') + '\n');
     const narrPath = path.join(dir, 'narration.m4a');
     execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'alist.txt'), '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-ac', '2', narrPath], { stdio: 'ignore' });
+    log('narration assembled');
 
     // 5) 카드 프레임 렌더 + concat 리스트 (각 카드 = 해당 음성 길이만큼 표시)
     let listTxt = '', total = 0, lastPng = null;
@@ -274,10 +282,12 @@ async function buildReelCards(canvasMod, opts) {
     }
     listTxt += `file '${lastPng}'\n`;   // concat demuxer: 마지막 프레임 고정
     fs.writeFileSync(path.join(dir, 'list.txt'), listTxt);
+    log('frames rendered n=' + n + ' total=' + total.toFixed(1));
 
     // 6) 배경음악
     const music = require('./reel-music.js');
     const musicPath = path.join(dir, 'music.mp3'); fs.writeFileSync(musicPath, Buffer.from(music.split(',')[1], 'base64'));
+    log('music ready, mux start');
 
     // 7) 합성: 영상 + (음악 22% + 내레이션) 믹스, 끝부분 페이드아웃
     const out = path.join(dir, 'out.mp4');
@@ -288,8 +298,9 @@ async function buildReelCards(canvasMod, opts) {
     execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'list.txt'),
       '-stream_loop', '-1', '-i', musicPath, '-i', narrPath,
       '-filter_complex', fc, '-map', '[v]', '-map', '[a]',
-      '-c:v', 'libx264', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-r', '30',
+      '-c:v', 'libx264', '-preset', 'veryfast', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-r', '30',
       '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2), '-movflags', '+faststart', out], { stdio: 'ignore' });
+    log('mux done');
     return { mp4: fs.readFileSync(out), durationSec: total, narrDur: narrTotal, sceneCount: n };
   } finally {
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
@@ -361,16 +372,20 @@ module.exports = async (req, res) => {
   const bg = (isPost ? body.bg : req.query.bg) || 'blur';
 
   try {
+    console.log('[vreel] enter mode=' + (images.length ? 'card' : 'subtitle') + ' images=' + images.length + ' dryrun=' + dryrun + ' scriptLen=' + String(script).length);
     if (!script || !String(script).trim()) return out(400, { ok: false, error: '스크립트(script)가 비었습니다.' });
     if (!process.env.IG_USER_ID || !process.env.IG_ACCESS_TOKEN) return out(500, { ok: false, error: 'IG_USER_ID/IG_ACCESS_TOKEN 환경변수가 없습니다.' });
+    if (images.length && !process.env.ELEVENLABS_API_KEY) return out(500, { ok: false, error: 'ELEVENLABS_API_KEY 환경변수가 없습니다. (Vercel 설정 필요)' });
     let canvasMod; try { canvasMod = require('@napi-rs/canvas'); } catch (e) { return out(500, { ok: false, error: '@napi-rs/canvas 로드 실패: ' + e.message }); }
     const { GlobalFonts } = canvasMod;
     if (images.length === 0) await ensureFonts(GlobalFonts);   // 카드 모드는 서버에서 텍스트를 안 그리므로 폰트 불필요
 
     const builder = images.length ? buildReelCards : buildReel;
     const { mp4, durationSec, narrDur, sceneCount } = await builder(canvasMod, { script: String(script), showSubtitle, caption, images, bg });
+    console.log('[vreel] build done bytes=' + (mp4 ? mp4.length : 0) + ' dur=' + durationSec);
     const blob = await put(`reels/voice-${Date.now()}.mp4`, mp4, { access: 'public', contentType: 'video/mp4', addRandomSuffix: true, token: process.env.BLOB_READ_WRITE_TOKEN });
     const videoUrl = blob.url;
+    console.log('[vreel] blob uploaded ' + videoUrl);
 
     if (dryrun) {
       if (isPost) return out(200, { ok: true, dryrun: true, videoUrl, durationSec, narrDur, sceneCount, showSubtitle });
@@ -382,6 +397,7 @@ module.exports = async (req, res) => {
     const mediaId = await publishReel(videoUrl, caption);
     return out(200, { ok: true, mediaId, videoUrl, durationSec });
   } catch (err) {
+    try { console.error('[vreel] FATAL ' + (err && err.stack ? err.stack : err)); } catch (e) {}
     return out(500, { ok: false, error: (err && err.message) ? err.message : String(err) });
   }
 };
