@@ -290,13 +290,17 @@ async function buildReelCards(canvasMod, opts) {
     log('music ready, mux start');
 
     // 7) 합성: 영상 + (음악 22% + 내레이션) 믹스, 끝부분 페이드아웃
+    //    ※ 음악 무한 반복(-1) 대신 유한 반복 → 일부 ffmpeg 빌드에서 무한 버퍼링/크래시 방지
+    const musicDur = ffdur(musicPath) || 30;
+    const loops = Math.max(1, Math.ceil(total / musicDur) + 1);
+    log('music dur=' + musicDur.toFixed(1) + ' loops=' + loops + ' total=' + total.toFixed(1));
     const out = path.join(dir, 'out.mp4');
     const fadeOut = Math.max(0.1, total - 0.6).toFixed(2);
     const afOut = Math.max(0.1, total - 1.0).toFixed(2);
     const fc = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,format=yuv420p,fade=t=out:st=${fadeOut}:d=0.5[v];`
       + `[1:a]volume=0.22[bg];[2:a]volume=1.0[vo];[bg][vo]amix=inputs=2:duration=longest:normalize=0,afade=t=out:st=${afOut}:d=1.0[a]`;
     execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'list.txt'),
-      '-stream_loop', '-1', '-i', musicPath, '-i', narrPath,
+      '-stream_loop', String(loops), '-i', musicPath, '-i', narrPath,
       '-filter_complex', fc, '-map', '[v]', '-map', '[a]',
       '-c:v', 'libx264', '-preset', 'veryfast', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-r', '30',
       '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2), '-movflags', '+faststart', out], { stdio: 'ignore' });
