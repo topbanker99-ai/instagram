@@ -281,41 +281,58 @@ async function buildReelCards(canvasMod, opts) {
     execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'alist.txt'), '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-ac', '2', narrPath], { stdio: 'ignore' });
     log('narration assembled');
 
-    // 5) 카드 프레임 렌더 — 메모리 절약: 이미지를 한 장씩 디코드 → 렌더 → 즉시 해제
-    let listTxt = '', total = 0, lastPng = null;
+    // 5) 카드 프레임 렌더 — 이미지를 한 장씩 디코드 → 렌더 → 즉시 해제
+    const framePaths = []; let total = 0;
     for (let i = 0; i < n; i++) {
       const b64 = String(opts.images[i]).split(',').pop();
       let img = await loadImage(Buffer.from(b64, 'base64'));
       const buf = renderCardFrame(createCanvas, img, opts.bg || 'blur');
       img = null; opts.images[i] = null;   // 디코드 이미지·원본 문자열 즉시 해제
-      const p = path.join(dir, `f${i}.png`); fs.writeFileSync(p, buf); lastPng = p;
-      listTxt += `file '${p}'\nduration ${durs[i].toFixed(2)}\n`; total += durs[i];
+      const p = path.join(dir, `f${i}.png`); fs.writeFileSync(p, buf); framePaths.push(p);
+      total += durs[i];
       log('frame ' + i + ' rendered');
     }
-    listTxt += `file '${lastPng}'\n`;   // concat demuxer: 마지막 프레임 고정
-    fs.writeFileSync(path.join(dir, 'list.txt'), listTxt);
     log('frames done total=' + total.toFixed(1));
 
-    // 6) 배경음악
+    // 6) 배경음악 → 영상 길이만큼만 유한 반복+트림한 "음악 베드" (과다 읽기/무한 버퍼 방지)
     const music = require('./reel-music.js');
     const musicPath = path.join(dir, 'music.mp3'); fs.writeFileSync(musicPath, Buffer.from(music.split(',')[1], 'base64'));
-    log('music ready, mux start');
-
-    // 7) 합성: 영상 + (음악 22% + 내레이션) 믹스, 끝부분 페이드아웃
-    //    ※ 음악 무한 반복(-1) 대신 유한 반복 → 일부 ffmpeg 빌드에서 무한 버퍼링/크래시 방지
     const musicDur = ffdur(musicPath) || 30;
-    const loops = Math.max(1, Math.ceil(total / musicDur) + 1);
-    log('music dur=' + musicDur.toFixed(1) + ' loops=' + loops + ' total=' + total.toFixed(1));
-    const out = path.join(dir, 'out.mp4');
-    const fadeOut = Math.max(0.1, total - 0.6).toFixed(2);
+    const loops = Math.max(0, Math.ceil(total / musicDur));
     const afOut = Math.max(0.1, total - 1.0).toFixed(2);
-    const fc = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,format=yuv420p,fade=t=out:st=${fadeOut}:d=0.5[v];`
-      + `[1:a]volume=0.22[bg];[2:a]volume=1.0[vo];[bg][vo]amix=inputs=2:duration=longest:normalize=0,afade=t=out:st=${afOut}:d=1.0[a]`;
-    execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'list.txt'),
-      '-stream_loop', String(loops), '-i', musicPath, '-i', narrPath,
-      '-filter_complex', fc, '-map', '[v]', '-map', '[a]',
-      '-c:v', 'libx264', '-preset', 'veryfast', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-r', '30', '-threads', '2',
-      '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2), '-movflags', '+faststart', out], { stdio: 'ignore' });
+    const bedPath = path.join(dir, 'bed.m4a');
+    execFileSync(FFMPEG, ['-y', '-stream_loop', String(loops), '-i', musicPath, '-t', total.toFixed(2), '-af', 'volume=0.22', '-ar', '44100', '-ac', '2', '-c:a', 'aac', '-b:a', '128k', bedPath], { stdio: 'ignore' });
+    log('music bed ready dur=' + musicDur.toFixed(1) + ' loops=' + loops);
+
+    // 6b) 음악 베드 + 내레이션 → 최종 오디오 (둘 다 정확히 total 길이 → 가볍고 경계 명확)
+    const finalAudio = path.join(dir, 'final_audio.m4a');
+    execFileSync(FFMPEG, ['-y', '-i', bedPath, '-i', narrPath,
+      '-filter_complex', `[0:a][1:a]amix=inputs=2:duration=longest:normalize=0,afade=t=out:st=${afOut}:d=1.0[a]`,
+      '-map', '[a]', '-t', total.toFixed(2), '-ar', '44100', '-ac', '2', '-c:a', 'aac', '-b:a', '128k', finalAudio], { stdio: 'ignore' });
+    log('final audio ready, video mux start');
+
+    // 7) 카드를 한 장씩 짧은 영상 조각으로 인코딩 (메모리 폭발 방지: 항상 카드 1장 분량만 처리)
+    let clipList = '';
+    for (let i = 0; i < n; i++) {
+      const clip = path.join(dir, `c${i}.mp4`);
+      let vf = 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p';
+      if (i === n - 1) { const segFade = Math.max(0.1, durs[i] - 0.5).toFixed(2); vf += `,fade=t=out:st=${segFade}:d=0.5`; }   // 마지막 카드 끝만 페이드아웃
+      execFileSync(FFMPEG, ['-y', '-loop', '1', '-i', framePaths[i], '-t', durs[i].toFixed(2),
+        '-vf', vf, '-r', '30', '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-threads', '1', clip], { stdio: 'ignore' });
+      clipList += `file '${clip}'\n`;
+      log('clip ' + i + ' done');
+    }
+    fs.writeFileSync(path.join(dir, 'clips.txt'), clipList);
+
+    // 8) 조각 이어붙이기(재인코딩 없이 복사) → 영상 트랙
+    const videoOnly = path.join(dir, 'video.mp4');
+    execFileSync(FFMPEG, ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'clips.txt'), '-c', 'copy', videoOnly], { stdio: 'ignore' });
+    log('clips concatenated');
+
+    // 9) 영상(복사) + 완성 오디오 결합 → 매우 가벼움
+    const out = path.join(dir, 'out.mp4');
+    execFileSync(FFMPEG, ['-y', '-i', videoOnly, '-i', finalAudio,
+      '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2), '-movflags', '+faststart', out], { stdio: 'ignore' });
     log('mux done');
     return { mp4: fs.readFileSync(out), durationSec: total, narrDur: narrTotal, sceneCount: n };
   } finally {
