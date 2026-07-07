@@ -4,107 +4,105 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>탑뱅커 · 카드뉴스 발행 & 쇼츠 제작</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --navy: #1B3A5C; --gold: #C9A961; --teal: #2E8B8B; --offwhite: #F7F9FC;
-    --white: #FFFFFF; --line: #E2E8F0; --muted: #64748B; --danger: #C0392B; --ok: #2E8B8B;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--offwhite); color: var(--navy);
-    font-family: -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif;
-    -webkit-font-smoothing: antialiased; }
-  .wrap { max-width: 660px; margin: 0 auto; padding: 40px 20px 80px; }
-  .topline { height: 4px; background: var(--gold); border-radius: 2px; }
-  header { padding: 26px 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
-  .brand { font-size: 13px; letter-spacing: 3px; color: var(--gold); font-weight: 700; text-transform: uppercase; }
-  h1 { font-size: 26px; margin: 8px 0 4px; font-weight: 800; letter-spacing: -0.4px; }
-  .sub { color: var(--muted); font-size: 14px; margin: 0; }
-  .field { margin-bottom: 24px; }
-  .label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-  .hint { color: var(--muted); font-size: 12px; font-weight: 400; }
-  input[type="password"], textarea { width: 100%; border: 1px solid var(--line); border-radius: 10px;
-    padding: 12px 14px; font-size: 15px; font-family: inherit; color: var(--navy); background: var(--white);
-    outline: none; transition: border-color .15s; }
-  input[type="password"]:focus, textarea:focus { border-color: var(--teal); }
-  textarea { resize: vertical; min-height: 130px; line-height: 1.55; }
-  .remember { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
-  .remember input { width: 16px; height: 16px; accent-color: var(--teal); }
-  .opts { display: flex; gap: 8px; flex-wrap: wrap; }
-  .opt { border: 1px solid var(--line); background: var(--white); color: var(--navy); border-radius: 9px;
-    padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .12s; font-family: inherit; }
-  .opt:hover { border-color: var(--teal); }
-  .opt.active { background: var(--navy); color: #fff; border-color: var(--navy); }
-  .drop { border: 2px dashed var(--line); border-radius: 14px; background: var(--white);
-    padding: 34px 20px; text-align: center; cursor: pointer; transition: all .15s; }
-  .drop:hover { border-color: var(--teal); background: #FBFDFE; }
-  .drop.over { border-color: var(--gold); background: #FFFDF6; }
-  .drop .big { font-size: 15px; font-weight: 700; }
-  .drop .small { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
-  .drop .mark { font-size: 22px; color: var(--gold); display: block; margin-bottom: 10px; }
-  .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
-  .thumb { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
-    background: var(--white); aspect-ratio: 1 / 1; }
-  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .thumb .order { position: absolute; top: 6px; left: 6px; min-width: 22px; height: 22px; padding: 0 6px;
-    background: var(--navy); color: #fff; font-size: 12px; font-weight: 700; border-radius: 6px;
-    display: flex; align-items: center; justify-content: center; }
-  .thumb .controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; }
-  .thumb .controls button { flex: 1; border: none; background: rgba(27,58,92,.86); color: #fff;
-    font-size: 13px; padding: 5px 0; cursor: pointer; }
-  .thumb .controls button:hover { background: var(--navy); }
-  .thumb .controls .del { background: rgba(192,57,43,.86); }
-  .thumb .controls .del:hover { background: var(--danger); }
-  .thumb .controls button:disabled { opacity: .35; cursor: default; }
-  .meta { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
-  .actions { margin-top: 30px; }
-  .btn { width: 100%; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 800;
-    cursor: pointer; background: var(--navy); color: #fff; letter-spacing: .3px; transition: background .15s; }
-  .btn:hover:not(:disabled) { background: #14304d; }
-  .btn:disabled { background: #9AA8B8; cursor: default; }
-  .btn .accent { color: var(--gold); }
-  .btn.secondary { background: var(--white); color: var(--navy); border: 1px solid var(--line); margin-bottom: 12px; }
-  .btn.secondary:hover:not(:disabled) { border-color: var(--teal); background: #FBFDFE; }
-  .status { margin-top: 22px; border-radius: 12px; padding: 16px 18px; font-size: 14px; line-height: 1.55; display: none; }
-  .status.show { display: block; }
-  .status.work { background: #EEF6F6; border: 1px solid #CDE6E6; color: #1E5E5E; }
-  .status.ok { background: #ECF7F2; border: 1px solid #BFE6D5; color: #1B6B4A; }
-  .status.err { background: #FCEDEC; border: 1px solid #F2C6C2; color: #8A2A20; }
-  .status a { color: inherit; font-weight: 700; }
-  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #BCDBDB;
-    border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite;
-    vertical-align: -2px; margin-right: 8px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .divider { display: flex; align-items: center; gap: 14px; margin: 40px 0 26px; }
-  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
-  .divider span { font-size: 13px; font-weight: 700; color: var(--gold); letter-spacing: 1px; white-space: nowrap; }
-  .preview-wrap { display: flex; justify-content: center; margin: 8px 0 4px; }
-  #canvas { width: 240px; height: 427px; border-radius: 14px; background: var(--navy);
-    border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(27,58,92,.12); display: block; }
-  .progress { margin-top: 18px; display: none; }
-  .progress.show { display: block; }
-  .bar { height: 10px; background: var(--line); border-radius: 6px; overflow: hidden; }
-  .bar > i { display: block; height: 100%; width: 0%; background: var(--teal); transition: width .1s linear; }
-  .ptext { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
-  .result { margin-top: 20px; border-radius: 12px; padding: 18px; display: none;
-    background: #ECF7F2; border: 1px solid #BFE6D5; color: #1B6B4A; }
-  .result.show { display: block; }
-  .result a.dl { display: inline-block; margin-top: 10px; background: var(--navy); color: #fff;
-    text-decoration: none; padding: 11px 18px; border-radius: 10px; font-weight: 700; font-size: 14px; }
-  .result a.dl:hover { background: #14304d; }
-  .errbox { margin-top: 18px; border-radius: 12px; padding: 14px 16px; font-size: 14px;
-    background: #FCEDEC; border: 1px solid #F2C6C2; color: #8A2A20; display: none; }
-  .errbox.show { display: block; }
-  .footnote { margin-top: 34px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.7; }
+  :root{--acc:#2997FF;--acc2:#4b6bff;--bg:#0B0B0D;--panel:#101013;--panel2:#141418;--line:#ffffff14;--line2:#ffffff0d;--tx:#ededf0;--tx2:#b6b6bd;--mut:#83838c;--ok:#2ec07a;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);font-family:'Inter',-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-font-smoothing:antialiased;}
+  .topline{height:2px;background:linear-gradient(90deg,var(--acc),var(--acc2));}
+  .wrap{max-width:760px;margin:0 auto;padding:16px 22px 90px;}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line2);}
+  .brand{font-size:14px;letter-spacing:4px;font-weight:800;color:#fff;}.brand small{color:var(--acc);}
+  .nav .right{display:flex;align-items:center;gap:10px;}
+  .ig{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:22px;padding:6px 12px 6px 10px;font-size:12px;color:#d6d6db;}
+  .ig .hd{font-weight:600;color:#fff;}.ig .lv{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px var(--ok);}
+  .av{width:30px;height:30px;border-radius:50%;background:#17171c;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--acc);font-weight:700;font-size:12px;}
+  .hero{position:relative;margin:22px 0 10px;border-radius:20px;overflow:hidden;border:1px solid var(--line);min-height:230px;background:url('/hero.png') center/cover no-repeat,#0a0a0f;}
+  .hero::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#06070c 6%,#06070cd0 34%,transparent 70%);}
+  .hero .h-in{position:relative;z-index:3;padding:34px 30px;max-width:72%;}
+  .hero .badge{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:#bcd6ff;background:#ffffff10;border:1px solid #ffffff20;padding:6px 12px;border-radius:20px;}
+  .hero .badge .d{width:6px;height:6px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc);}
+  .hero h1{font-size:30px;font-weight:800;letter-spacing:-.8px;color:#fff;margin:14px 0 8px;line-height:1.15;}
+  .hero .sub{color:#a6a8b6;font-size:14px;margin:0;max-width:380px;}
+  .hero .char{position:absolute;right:8px;bottom:0;height:220px;z-index:2;background:url('/character.png') no-repeat bottom/contain;filter:drop-shadow(0 8px 24px #00000077);pointer-events:none;}
+  .field{margin-bottom:22px;}
+  .label{display:block;font-size:13px;font-weight:700;margin-bottom:9px;color:var(--tx);}
+  .hint{color:var(--mut);font-size:12px;font-weight:400;}
+  input[type="password"],textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:15px;font-family:inherit;color:var(--tx);background:var(--panel);outline:none;transition:border-color .15s,box-shadow .15s;}
+  input[type="password"]:focus,textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px #2997ff26;}
+  input::placeholder,textarea::placeholder{color:#5f5f67;}
+  textarea{resize:vertical;min-height:130px;line-height:1.55;}
+  .remember{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--mut);}
+  .remember input{width:16px;height:16px;accent-color:var(--acc);}
+  .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  .opt{border:1px solid var(--line);background:var(--panel2);color:var(--tx2);border-radius:11px;padding:10px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .12s;font-family:inherit;}
+  .opt:hover{border-color:#2997ff66;color:#fff;}.opt.active{background:var(--acc);color:#04121f;border-color:var(--acc);}
+  .drop{border:1.5px dashed #2b2b31;border-radius:16px;background:var(--panel);padding:32px 20px;text-align:center;cursor:pointer;transition:all .15s;}
+  .drop:hover{border-color:#2997ff88;background:#0f1014;}.drop.over{border-color:var(--acc);background:#0e141d;}
+  .drop .big{font-size:15px;font-weight:700;color:var(--tx);}.drop .small{font-size:12.5px;color:var(--mut);margin-top:6px;}
+  .drop .mark{font-size:22px;color:var(--acc);display:block;margin-bottom:10px;}
+  .thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;}
+  .thumb{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);aspect-ratio:1/1;}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumb .order{position:absolute;top:6px;left:6px;min-width:22px;height:22px;padding:0 6px;background:var(--acc);color:#04121f;font-size:12px;font-weight:700;border-radius:6px;display:flex;align-items:center;justify-content:center;}
+  .thumb .controls{position:absolute;bottom:0;left:0;right:0;display:flex;}
+  .thumb .controls button{flex:1;border:none;background:rgba(20,20,24,.86);color:#fff;font-size:13px;padding:5px 0;cursor:pointer;}
+  .thumb .controls button:hover{background:rgba(41,151,255,.86);}
+  .thumb .controls .del{background:rgba(60,60,66,.86);}.thumb .controls .del:hover{background:rgba(255,80,80,.86);}
+  .thumb .controls button:disabled{opacity:.35;cursor:default;}
+  .meta{font-size:12.5px;color:var(--mut);margin-top:10px;}
+  .actions{margin-top:28px;}
+  .btn{width:100%;border:1px solid transparent;border-radius:13px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;background:var(--acc);color:#04121f;letter-spacing:.2px;transition:filter .15s,background .15s;box-shadow:0 10px 30px #2997ff33;}
+  .btn:hover:not(:disabled){filter:brightness(1.06);}
+  .btn:disabled{background:#2a2a30;color:#6f6f77;cursor:default;box-shadow:none;}
+  .btn .accent{color:#04121f;}
+  .btn.secondary{background:var(--panel2);color:var(--tx);border:1px solid var(--line);margin-bottom:12px;box-shadow:none;}
+  .btn.secondary:hover:not(:disabled){border-color:#2997ff66;background:#15161b;filter:none;}
+  .status{margin-top:20px;border-radius:13px;padding:15px 17px;font-size:14px;line-height:1.55;display:none;border:1px solid transparent;}
+  .status.show{display:block;}
+  .status.work{background:#0d1622;border-color:#1e3a5a;color:#bcd6ff;}
+  .status.ok{background:#0c1c14;border-color:#1e4d36;color:#8ee6b4;}
+  .status.err{background:#1e0f0f;border-color:#5a2020;color:#ffb4b4;}
+  .status a{color:inherit;font-weight:700;}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid #23415f;border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:8px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .divider{display:flex;align-items:center;gap:14px;margin:42px 0 26px;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+  .divider span{font-size:12.5px;font-weight:700;color:var(--acc);letter-spacing:1px;white-space:nowrap;}
+  .preview-wrap{display:flex;justify-content:center;margin:8px 0 4px;}
+  #canvas{width:240px;height:427px;border-radius:16px;background:#0a0a0f;border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,.5);display:block;}
+  .progress{margin-top:18px;display:none;}.progress.show{display:block;}
+  .bar{height:10px;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;overflow:hidden;}
+  .bar>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .1s linear;}
+  .ptext{font-size:13px;color:var(--mut);margin-top:8px;text-align:center;}
+  .result{margin-top:20px;border-radius:13px;padding:18px;display:none;background:#0c1c14;border:1px solid #1e4d36;color:#8ee6b4;}
+  .result.show{display:block;}
+  .result a.dl{display:inline-block;margin-top:10px;background:var(--acc);color:#04121f;text-decoration:none;padding:11px 18px;border-radius:11px;font-weight:700;font-size:14px;}
+  .result a.dl:hover{filter:brightness(1.06);}
+  .errbox{margin-top:18px;border-radius:13px;padding:14px 16px;font-size:14px;background:#1e0f0f;border:1px solid #5a2020;color:#ffb4b4;display:none;}
+  .errbox.show{display:block;}
+  .footnote{margin-top:34px;font-size:12px;color:var(--mut);text-align:center;line-height:1.7;}
+  @media(max-width:560px){.hero .char{opacity:.3;}.hero .h-in{max-width:100%;}.ig .hd,.ig .txt2{display:none;}}
 </style>
 </head>
 <body>
 <div class="topline"></div>
 <div class="wrap">
-  <header>
-    <div class="brand">탑뱅커</div>
-    <h1>카드뉴스 발행 &amp; 쇼츠 제작</h1>
-    <p class="sub">이미지를 한 번 올리면, 인스타그램 발행과 유튜브 쇼츠 영상(배경음악 포함) 제작을 한 곳에서.</p>
-  </header>
+  <div class="nav">
+    <div class="brand">TOP<small>·</small>BANKER</div>
+    <div class="right">
+      <div class="ig"><svg viewBox="0 0 24 24" width="17" height="17" aria-label="Instagram" style="display:block"><defs><linearGradient id="igg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#feda75"/><stop offset="0.25" stop-color="#fa7e1e"/><stop offset="0.5" stop-color="#d62976"/><stop offset="0.75" stop-color="#962fbf"/><stop offset="1" stop-color="#4f5bd5"/></linearGradient></defs><rect x="2.3" y="2.3" width="19.4" height="19.4" rx="5.6" fill="none" stroke="url(#igg)" stroke-width="2"/><circle cx="12" cy="12" r="4.8" fill="none" stroke="url(#igg)" stroke-width="2"/><circle cx="17.6" cy="6.4" r="1.35" fill="url(#igg)"/></svg><span class="hd">@topbanker99</span><span class="txt2" style="color:#83838c">· 연결됨</span><span class="lv"></span></div>
+      <div class="av">TB</div>
+    </div>
+  </div>
+  <div class="hero">
+    <div class="h-in">
+      <div class="badge"><span class="d"></span> 자동 발행 · 인스타그램 연결됨</div>
+      <h1>카드뉴스 발행 &amp; 쇼츠 제작</h1>
+      <p class="sub">이미지를 한 번 올리면 인스타그램 발행과 유튜브 쇼츠·릴스 제작을 한 곳에서.</p>
+    </div>
+    <div class="char"></div>
+  </div>
 
   <div class="field">
     <label class="label" for="secret">발행 비밀키 <span class="hint">— Vercel에 등록한 PUBLISH_SECRET (인스타 발행에만 사용)</span></label>
@@ -134,32 +132,6 @@
     <button class="btn" id="publish">인스타그램에 <span class="accent">발행</span></button>
   </div>
   <div class="status" id="status"></div>
-
-  <div class="divider"><span>카드 + 음성으로 릴스 만들기 (ElevenLabs)</span></div>
-
-  <div class="field">
-    <label class="label">내레이션 스크립트 <span class="hint">— 위쪽 카드 영상 위에 AI 음성을 입혀 릴스를 만듭니다</span></label>
-    <textarea id="vrScript" placeholder="카드별 내레이션을 --- 로 구분해서 입력하세요."></textarea>
-    <div class="meta">위쪽 <strong>카드뉴스 이미지</strong>가 화면에 나오고, 각 카드는 해당 음성이 끝날 때까지 표시됩니다. <strong>카드 경계는 ---(하이픈 3개)</strong> 로 나눠주세요. 본문(캡션)·발행 비밀키도 함께 사용합니다.</div>
-  </div>
-
-  <div class="field">
-    <label class="label">배경 <span class="hint">— 정사각 카드를 세로 화면에 채울 방식</span></label>
-    <div class="opts" id="vrBgOpts">
-      <button class="opt active" data-bg="blur">이미지 흐림</button>
-      <button class="opt" data-bg="navy">네이비</button>
-      <button class="opt" data-bg="white">흰색</button>
-    </div>
-  </div>
-
-  <button class="btn secondary" id="vrPreviewBtn">카드+음성 <span class="accent">미리보기</span> 만들기</button>
-  <button class="btn" id="vrPublishBtn">카드+음성 릴스 <span class="accent">발행</span></button>
-  <div class="ptext" style="text-align:left; margin: -4px 0 14px;">먼저 미리보기로 카드 전환·음성을 확인한 뒤 발행하세요. 음성 생성·렌더링에 1~2분, 발행에 몇 분 걸릴 수 있습니다.</div>
-  <div id="vrPreviewWrap" style="display:none; margin-top:8px; text-align:center;">
-    <video id="vrVideo" controls playsinline loop style="width:240px; border-radius:14px; background:#000; border:1px solid var(--line);"></video>
-    <div class="meta" id="vrPreviewMeta" style="text-align:center;"></div>
-  </div>
-  <div class="status" id="vrStatus"></div>
 
   <div class="divider"><span>같은 이미지로 유튜브 쇼츠 만들기</span></div>
 
@@ -773,79 +745,6 @@ is-buffer/index.js:
       busy = false; vreelBtn.disabled = false; reelBtn.disabled = false; makeBtn.disabled = false; previewBtn.disabled = false; publishEl.disabled = false;
     });
   });
-
-  // ===== 카드 + 음성 릴스 생성기 (api/voice-reel.js 호출, 카드 이미지 + 음성) =====
-  (function () {
-    var ENDPOINT_VR = '/api/voice-reel';
-    var IGP = (typeof IG_PROFILE !== 'undefined') ? IG_PROFILE : 'https://www.instagram.com/topbanker99/';
-    var vrBg = 'blur', vrBusy = false;
-    var bgOpts = document.getElementById('vrBgOpts');
-    var scriptEl = document.getElementById('vrScript');
-    var previewBtn = document.getElementById('vrPreviewBtn');
-    var publishBtn = document.getElementById('vrPublishBtn');
-    var vrStatus = document.getElementById('vrStatus');
-    var wrap = document.getElementById('vrPreviewWrap');
-    var video = document.getElementById('vrVideo');
-    var pmeta = document.getElementById('vrPreviewMeta');
-    if (!scriptEl || !previewBtn || !publishBtn) return;
-
-    bgOpts.querySelectorAll('.opt').forEach(function (b) {
-      b.addEventListener('click', function () {
-        if (vrBusy) return;
-        bgOpts.querySelectorAll('.opt').forEach(function (x) { x.classList.remove('active'); });
-        b.classList.add('active'); vrBg = b.dataset.bg;
-      });
-    });
-
-    function setVR(kind, html) { vrStatus.className = 'status show ' + kind; vrStatus.innerHTML = html; }
-
-    function run(dryrun) {
-      if (vrBusy) return;
-      var secret = (document.getElementById('secret').value || '').trim();
-      var caption = document.getElementById('caption').value || '';
-      var script = (scriptEl.value || '').trim();
-      if (!secret) { setVR('err', '발행 비밀키를 입력하세요. (맨 위 칸)'); return; }
-      if (typeof files === 'undefined' || files.length < 1) { setVR('err', '먼저 위쪽 \u201C카드뉴스 이미지\u201D 칸에 카드(예: 4컷)를 올려주세요.'); return; }
-      if (!script) { setVR('err', '내레이션 스크립트를 입력하세요. (카드 경계는 --- 로 구분)'); return; }
-      vrBusy = true; previewBtn.disabled = true; publishBtn.disabled = true;
-      if (dryrun) wrap.style.display = 'none';
-      setVR('work', '<span class="spinner"></span>카드 이미지를 준비하는 중입니다…');
-      Promise.all(files.map(function (f) { return fileToDataURL(f.file); })).then(function (imgs) {
-        setVR('work', '<span class="spinner"></span>' + (dryrun
-          ? '카드별 음성을 만들고 영상을 렌더링하는 중입니다… 1~2분 정도 걸려요.'
-          : '카드+음성 릴스를 만들어 인스타그램에 발행하는 중입니다… 몇 분 걸릴 수 있어요.'));
-        return fetch(ENDPOINT_VR, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-publish-secret': secret },
-          body: JSON.stringify({ script: script, images: imgs, bg: vrBg, caption: caption, dryrun: !!dryrun })
-        });
-      }).then(function (res) {
-        return res.text().then(function (txt) { var d = null; try { d = JSON.parse(txt); } catch (e) {} return { ok: res.ok, status: res.status, data: d, raw: txt }; });
-      })
-        .then(function (r) {
-          var d = r.data;
-          if (r.ok && d && d.ok) {
-            if (dryrun && d.videoUrl) {
-              video.src = d.videoUrl; wrap.style.display = 'block';
-              pmeta.textContent = '영상 ' + (d.durationSec ? d.durationSec.toFixed(1) : '?') + '초 · 내레이션 ' + (d.narrDur ? d.narrDur.toFixed(1) + '초' : '측정실패') + ' · 카드 ' + (d.sceneCount || '?') + '장';
-              setVR('ok', '미리보기가 만들어졌습니다. 재생해서 카드 전환·음성을 확인하세요. 좋으면 아래 <strong>카드+음성 릴스 발행</strong>을 누르면 됩니다.');
-            } else {
-              setVR('ok', '릴스가 발행되었습니다.<br />확인: <a href="' + IGP + '" target="_blank" rel="noopener">instagram.com/topbanker99</a>');
-            }
-          } else if (d && d.error) {
-            var msg = d.error; if (msg && typeof msg === 'object') msg = msg.message || JSON.stringify(msg);
-            setVR('err', '실패: ' + msg + '<br /><span style="color:var(--muted)">카드 이미지가 올라가 있는지, ELEVENLABS_API_KEY 환경변수가 설정돼 있는지 확인해 보세요.</span>');
-          } else {
-            var snip = (r.raw || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
-            setVR('err', '서버 오류 (HTTP ' + r.status + '): ' + (snip || '응답 없음') + '<br /><span style="color:var(--muted)">함수가 처리 중 종료됐어요(메모리 부족 또는 시간 초과 가능). 잠시 후 다시 시도하거나, 카드 수·스크립트 길이를 줄여 보세요.</span>');
-          }
-        }).catch(function (e) { setVR('err', '오류: ' + (e && e.message ? e.message : e)); })
-        .then(function () { vrBusy = false; previewBtn.disabled = false; publishBtn.disabled = false; });
-    }
-
-    previewBtn.addEventListener('click', function () { run(true); });
-    publishBtn.addEventListener('click', function () { run(false); });
-  })();
 
   drawStatic();
 </script>
