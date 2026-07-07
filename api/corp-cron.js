@@ -41,15 +41,31 @@ function wrap(ctx,text,maxw){ const u=String(text).match(/[A-Za-z0-9.,%·\-()]+|
 function rr(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
 const W=1080, M=110, CW=W-2*M, CX=W/2, TOTAL=8;
+const RAW_ASSETS='https://raw.githubusercontent.com/topbanker99-ai/instagram/main';
+let LOGO_IMG=null, CHAR_IMG=null;   // 발행 직전 프리로드됨 (없으면 그냥 생략)
+function drawCharacter(ctx, cxCenter, bottom, targetH){
+  if(!CHAR_IMG) return;
+  const r=targetH/CHAR_IMG.height, w=Math.round(CHAR_IMG.width*r), x=Math.round(cxCenter-w/2), y=bottom-targetH;
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,0.45)'; ctx.shadowBlur=40; ctx.shadowOffsetY=8;
+  ctx.drawImage(CHAR_IMG,x,y,w,targetH); ctx.restore();
+}
+function drawLogoChip(ctx, cx, cy, targetW, radius, pad){
+  if(!LOGO_IMG) return 0;
+  const r=targetW/LOGO_IMG.width, h=Math.round(LOGO_IMG.height*r), px=pad, py=Math.round(pad*0.75);
+  const cw=targetW+px*2, ch=h+py*2;
+  ctx.fillStyle='#FFFFFF'; rr(ctx,cx,cy,cw,ch,radius); ctx.fill(); ctx.drawImage(LOGO_IMG,cx+px,cy+py,targetW,h);
+  return ch;
+}
 function chrome(createCanvas, mode, page){
   const bg = mode==='dark'?COL.DARK:(mode==='parch'?COL.PARCH:COL.WHITE), dark=mode==='dark';
   const c = { main:dark?COL.WHITE:COL.INK, body:dark?COL.SOFT_D:COL.SOFT_L, cap:dark?COL.CAP_D:COL.CAP_L, accent:dark?COL.BLUE_D:COL.BLUE_L,
     chipBg:dark?'#16273C':'#E9F0FA', chipT:dark?'#8FBDF1':'#0A57AC' };
   const cv=createCanvas(W,W), ctx=cv.getContext('2d');
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,W); ctx.textBaseline='top';
-  ctx.fillStyle=c.main; ctx.font=fnt('Pretendard Bold',29); ctr(ctx,CX,86,'TOP BANKER',5);
+  ctx.fillStyle=c.main; ctx.font=fnt('Pretendard Bold',40); ctr(ctx,CX,72,'TOP BANKER',10);
   const pg=`${String(page).padStart(2,'0')} / ${String(TOTAL).padStart(2,'0')}`;
-  ctx.fillStyle=c.cap; ctx.font=fnt('Pretendard SemiBold',26); ctx.fillText(pg, W-M-tw(ctx,pg,0), 992);
+  ctx.fillStyle=c.cap; ctx.font=fnt('Pretendard SemiBold',26);
+  const leftPg=(page===1||page===TOTAL); ctx.fillText(pg, leftPg?M:(W-M-tw(ctx,pg,0)), 992);
   return {cv,ctx,c};
 }
 function head(ctx,c,txt,suffix){ ctx.fillStyle=c.main; ctx.font=fnt('Pretendard SemiBold',52); ctx.fillText(txt,M,168);
@@ -68,14 +84,17 @@ function paras(ctx,c,items,y,maxItems,descLines){   // items: [{title, body}]
   } return y;
 }
 
-// ① 표지
-function cover(createCanvas, bank){
+// ① 표지 (로고 흰 칩 + 캐릭터)
+function cover(createCanvas, bank, metrics){
   const {cv,ctx,c}=chrome(createCanvas,'dark',1);
-  ctx.fillStyle=c.accent; ctx.font=fnt('Pretendard Bold',38); ctr(ctx,CX,292,'은행 기업분석',0);
-  ctx.fillStyle=c.main; ctx.font=fnt('Pretendard SemiBold',84); ctr(ctx,CX,366,strip(bank.name),-1);
-  ctx.fillStyle=c.cap; ctx.font=fnt('Pretendard',30); ctr(ctx,CX,480,strip(bank.eng||''),0);
-  ctx.fillStyle=c.body; ctx.font=fnt('Pretendard',44); ctr(ctx,CX,612,'2026 대비 결산 핵심 요약',0);
-  ctx.fillStyle=c.accent; ctx.font=fnt('Pretendard SemiBold',30); ctr(ctx,CX,690,'SWOT · 지표 · 디지털 · 플랫폼 수록',0);
+  ctx.font=fnt('Pretendard Bold',34); const lab='기업분석'; const lw=ctx.measureText(lab).width;
+  ctx.fillStyle=c.chipBg; rr(ctx,M,178,lw+56,68,34); ctx.fill(); ctx.fillStyle=c.chipT; ctx.fillText(lab,M+28,196);
+  const chH=drawLogoChip(ctx,M,300,300,18,22); const base=chH?300+chH:300;
+  ctx.fillStyle=c.main; ctx.font=fnt('Pretendard SemiBold',88); ctx.fillText(strip(bank.name),M,base+40);
+  ctx.fillStyle=c.cap; ctx.font=fnt('Pretendard',38); ctx.fillText(strip(bank.eng||''),M+4,base+152);
+  const m0=(metrics&&metrics[0])?`${strip(metrics[0].label)}  ${strip(metrics[0].value)}`:'2026 대비 결산 핵심 요약';
+  ctx.fillStyle=c.accent; ctx.font=fnt('Pretendard SemiBold',38); ctx.fillText(m0,M+4,base+216);
+  drawCharacter(ctx,852,W,440);
   return cv.toBuffer('image/png');
 }
 // ②③ SWOT (2개 카테고리 세로, 카테고리당 최대 3개)
@@ -117,6 +136,7 @@ function metricsCard(createCanvas, metrics){
     ctx.fillStyle=valColor; ctx.font=fnt('Pretendard SemiBold',50); ctx.fillText(baseShown,x,y+42);
     if(m.chg){ const bw=ctx.measureText(baseShown).width; ctx.font=fnt('Pretendard SemiBold',28);
       ctx.fillStyle=m.trend==='down'?COL.NEG:(m.trend==='up'?COL.POS:c.cap); ctx.fillText(m.chg,x+bw+16,y+62); } });
+  ctx.fillStyle=c.cap; ctx.font=fnt('Pretendard',26); ctx.fillText('※ 2025 결산 · 금감원 기준',M,992);
   return cv.toBuffer('image/png');
 }
 // ⑥ 디지털 트렌드
@@ -134,6 +154,18 @@ function platformCard(createCanvas, p){
     const nw=ctx.measureText(strip(app.name)).width; ctx.fillStyle=c.cap; ctx.font=fnt('Pretendard',24); ctx.fillText('  '+strip(app.stat),M+nw+10,y+9); y+=46;
     ctx.fillStyle=c.body; ctx.font=fnt('Pretendard',27); const b=(app.bullets&&app.bullets[0])?strip(app.bullets[0]):''; for(const ln of wrap(ctx,'· '+b,CW).slice(0,2)){ ctx.fillText(ln,M,y); y+=37; } y+=22;
   }
+  return cv.toBuffer('image/png');
+}
+// ⑧ 아웃트로 (팔로우 유도 + 캐릭터)
+function outroCard(createCanvas, bank){
+  const {cv,ctx,c}=chrome(createCanvas,'dark',TOTAL);
+  drawLogoChip(ctx, W-M-182, 150, 150, 16, 16);
+  ctx.fillStyle=c.main; ctx.font=fnt('Pretendard SemiBold',56);
+  ctx.fillText('매주 새로운 은행',M,300); ctx.fillText('기업분석 카드뉴스',M,372);
+  ctx.fillStyle=c.body; ctx.font=fnt('Pretendard',36); ctx.fillText('놓치지 말고 팔로우하세요',M,470);
+  ctx.font=fnt('Pretendard SemiBold',34); const cta='＋ 팔로우  @topbanker99'; const cw3=ctx.measureText(cta).width+64;
+  ctx.fillStyle=c.accent; rr(ctx,M,560,cw3,92,46); ctx.fill(); ctx.fillStyle='#0B0B0D'; ctx.fillText(cta,M+32,588);
+  drawCharacter(ctx,852,W,470);
   return cv.toBuffer('image/png');
 }
 
@@ -155,13 +187,14 @@ function buildBankBuffers(createCanvas, byId){
   const biz=byId.biz||{}, dig=byId.digital||{}, plat=byId.platform||{};
   const bank=(biz.bank)||(dig.bank)||(plat.bank)||{ name:'', eng:'' };
   return [
-    cover(createCanvas, bank),
+    cover(createCanvas, bank, biz.metrics),
     swotCard(createCanvas, biz.swot, [['강점','strength'],['약점','weakness']], 2, 'parch', 1),
     swotCard(createCanvas, biz.swot, [['기회','opportunity'],['위협','threat']], 3, 'dark', 2),
     summaryCard(createCanvas, biz.summary),
     metricsCard(createCanvas, biz.metrics),
     digitalCard(createCanvas, dig),
     platformCard(createCanvas, plat),
+    outroCard(createCanvas, bank),
   ];
 }
 
@@ -231,7 +264,7 @@ async function handler(req, res){
   try{
     if(!process.env.IG_USER_ID||!process.env.IG_ACCESS_TOKEN) return out(500,{ok:false,error:'IG_USER_ID/IG_ACCESS_TOKEN 환경변수가 없습니다.'});
     let canvasMod; try{ canvasMod=require('@napi-rs/canvas'); }catch(e){ return out(500,{ok:false,error:'@napi-rs/canvas 로드 실패: '+e.message}); }
-    const { createCanvas, GlobalFonts }=canvasMod; await ensureFonts(GlobalFonts);
+    const { createCanvas, GlobalFonts, loadImage }=canvasMod; await ensureFonts(GlobalFonts);
 
     const prog=await readProgress();
     let idx = forceBank ? BANK_ORDER.indexOf(forceBank) : (prog.nextIndex % BANK_ORDER.length);
@@ -255,14 +288,17 @@ async function handler(req, res){
     const byId={ biz:buildBiz(bankKey,raw), digital:buildDigital(bankKey,raw), platform:buildPlatform(bankKey,raw) };
     const bankName=raw.name||bankKey;
 
+    // 로고·캐릭터 프리로드 (실패해도 카드 생성은 계속 — 이미지만 빠짐)
+    async function _load(u){ try{ const r=await fetch(u); if(!r.ok) return null; return await loadImage(Buffer.from(await r.arrayBuffer())); }catch(e){ return null; } }
+    LOGO_IMG = await _load(`${RAW_ASSETS}/logos/${bankKey}.png`);
+    CHAR_IMG = await _load(`${RAW_ASSETS}/character.png`);
+
     // 렌더 → Blob 업로드
     const { put } = require('./blob-bundle.js');
     const buffers=buildBankBuffers(createCanvas, byId);
     const folder=`corp/${bankKey}-${Date.now()}`; const imageUrls=[];
     for(let i=0;i<buffers.length;i++){ const blob=await put(`${folder}/${i+1}.png`, buffers[i], {access:'public',contentType:'image/png',addRandomSuffix:true,token:process.env.BLOB_READ_WRITE_TOKEN}); imageUrls.push(blob.url); }
-    // 아웃트로(네이버 안내) — 끝에 추가
-    let OUTRO=null; try{ OUTRO=require('./outro-image.js'); }catch(e){}
-    if(OUTRO){ try{ const ob=Buffer.from(OUTRO.split(',')[1],'base64'); const obl=await put('assets/outro.png', ob, {access:'public',contentType:'image/png',addRandomSuffix:false,allowOverwrite:true,token:process.env.BLOB_READ_WRITE_TOKEN}); imageUrls.push(obl.url); }catch(e){} }
+    // 아웃트로는 이제 outroCard(캔버스)로 위에서 함께 렌더됩니다.
 
     const caption=buildCaption(bankName, BANK_TAG[bankKey]);
 
@@ -283,4 +319,4 @@ async function handler(req, res){
 }
 
 module.exports = handler;
-module.exports._render = { buildBankBuffers, cover, swotCard, summaryCard, metricsCard, digitalCard, platformCard };
+module.exports._render = { buildBankBuffers, cover, outroCard, swotCard, summaryCard, metricsCard, digitalCard, platformCard, setAssets:(l,ch)=>{LOGO_IMG=l;CHAR_IMG=ch;} };
