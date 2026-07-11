@@ -57,6 +57,9 @@
     },
     "api/quiz-cron.js": {
       "maxDuration": 120
+    },
+    "api/spec-cron.js": {
+      "maxDuration": 180
     }
   },
   "crons": [
@@ -99,6 +102,10 @@
     {
       "path": "/api/quiz-cron?type=law",
       "schedule": "0 1 * * 5"
+    },
+    {
+      "path": "/api/spec-cron",
+      "schedule": "0 1 * * 3"
     }
   ]
 }
