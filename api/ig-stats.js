@@ -2,16 +2,38 @@
 // 탑뱅커 대시보드용 — 실제 인스타그램 계정 통계 + 최근 게시물 불러오기
 // 서버에서 IG_ACCESS_TOKEN 으로 호출하고, 공개 프로필 데이터(JSON)만 반환합니다 (토큰은 노출 안 됨).
 // 필요한 권한: instagram_business_basic (팔로워 수·게시물 읽기). 발행 토큰에 이미 포함된 경우가 많습니다.
+//
+// 계정 선택: ?acct=1 (기본, @topbanker99) / ?acct=2 (@top_career_)
+//   - acct=1 → IG_USER_ID  / IG_ACCESS_TOKEN
+//   - acct=2 → IG_USER_ID_2 / IG_ACCESS_TOKEN_2
 
 const V = 'v23.0';
 const G = `https://graph.instagram.com/${V}`;
 
 module.exports = async (req, res) => {
   try {
-    const IG = process.env.IG_USER_ID;
-    const TOKEN = process.env.IG_ACCESS_TOKEN;
+    // 계정 번호 파싱 (req.query 우선, 없으면 URL 에서 직접 파싱)
+    let acct = (req.query && req.query.acct) ? String(req.query.acct) : null;
+    if (!acct) {
+      try {
+        const u = new URL(req.url, 'http://x');
+        acct = u.searchParams.get('acct');
+      } catch (_) { /* noop */ }
+    }
+    const isTwo = String(acct) === '2';
+
+    const IG = isTwo ? process.env.IG_USER_ID_2 : process.env.IG_USER_ID;
+    const TOKEN = isTwo ? process.env.IG_ACCESS_TOKEN_2 : process.env.IG_ACCESS_TOKEN;
+    const fallbackUser = isTwo ? 'top_career_' : 'topbanker99';
+
     if (!IG || !TOKEN) {
-      res.status(500).json({ ok: false, error: 'IG_USER_ID / IG_ACCESS_TOKEN 환경변수가 없습니다.' });
+      res.status(500).json({
+        ok: false,
+        acct: isTwo ? 2 : 1,
+        error: isTwo
+          ? 'IG_USER_ID_2 / IG_ACCESS_TOKEN_2 환경변수가 없습니다.'
+          : 'IG_USER_ID / IG_ACCESS_TOKEN 환경변수가 없습니다.'
+      });
       return;
     }
 
@@ -39,7 +61,8 @@ module.exports = async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
     res.status(200).json({
       ok: true,
-      username: acc.username || 'topbanker99',
+      acct: isTwo ? 2 : 1,
+      username: acc.username || fallbackUser,
       profilePic: acc.profile_picture_url || null,
       followers: (typeof acc.followers_count === 'number') ? acc.followers_count : null,
       following: (typeof acc.follows_count === 'number') ? acc.follows_count : null,

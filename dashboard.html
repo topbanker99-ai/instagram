@@ -24,25 +24,51 @@
   .chip .r{width:26px;height:26px;border-radius:50%;background:var(--ig);padding:2px;}
   .chip .r img,.chip .r i{width:100%;height:100%;border-radius:50%;background:#111;display:block;object-fit:cover;}
   .chip .hd{font-weight:600;color:#fff;}
-  .hero{position:relative;margin-top:14px;border-radius:22px;overflow:hidden;border:1px solid var(--line);min-height:250px;
+
+  /* 계정 전환 탭 */
+  .acctabs{display:flex;gap:8px;margin:16px 0 2px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;}
+  .acctab{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;padding:11px 10px;border-radius:10px;cursor:pointer;color:var(--mut);font-size:14px;font-weight:700;transition:background .15s,color .15s;user-select:none;}
+  .acctab .dot{width:22px;height:22px;border-radius:50%;background:var(--ig);padding:2px;flex:none;}
+  .acctab .dot img,.acctab .dot i{width:100%;height:100%;border-radius:50%;background:#111;display:block;object-fit:cover;}
+  .acctab small{font-weight:500;color:var(--mut);font-size:11.5px;}
+  .acctab.on{background:var(--panel2);color:#fff;box-shadow:inset 0 0 0 1px #ffffff1f;}
+  .acctab.on small{color:#c4c4cc;}
+
+  .hero{position:relative;margin-top:14px;border-radius:22px;overflow:hidden;border:1px solid var(--line);min-height:220px;
     background:radial-gradient(600px 300px at 88% 20%,#d6297655,transparent 60%),radial-gradient(520px 320px at 70% 110%,#4f5bd544,transparent 60%),radial-gradient(400px 260px at 96% 70%,#fa7e1e44,transparent 60%),#0b0b10;}
-  .hero .in{position:relative;z-index:3;padding:38px 36px;max-width:66%;}
+  .hero .in{position:relative;z-index:3;padding:34px 36px;max-width:66%;}
   .badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#fff;background:#ffffff12;border:1px solid #ffffff22;padding:7px 14px;border-radius:20px;}
   .badge .g{width:16px;height:16px;border-radius:5px;background:var(--ig);}
-  .hero h1{font-size:34px;font-weight:800;letter-spacing:-1px;color:#fff;margin:15px 0 8px;line-height:1.14;}
+  .hero h1{font-size:30px;font-weight:800;letter-spacing:-1px;color:#fff;margin:14px 0 8px;line-height:1.16;}
   .hero p{color:#c4c4cc;font-size:14.5px;max-width:380px;}
-  .cta{margin-top:22px;display:inline-flex;align-items:center;gap:9px;background:var(--ig);color:#fff;font-weight:700;border-radius:13px;padding:14px 24px;font-size:15px;box-shadow:0 12px 34px #d6297644;}
-  .hero .char{position:absolute;right:16px;bottom:0;height:250px;z-index:2;background:var(--char) no-repeat bottom/contain;filter:drop-shadow(0 8px 26px #00000088);}
-  .stories{display:flex;gap:20px;margin:26px 2px 6px;overflow:auto;padding-bottom:6px;}
+  .cta{margin-top:20px;display:inline-flex;align-items:center;gap:9px;background:var(--ig);color:#fff;font-weight:700;border-radius:13px;padding:13px 22px;font-size:15px;box-shadow:0 12px 34px #d6297644;}
+  .hero .char{position:absolute;right:16px;bottom:0;height:230px;z-index:2;background:var(--char) no-repeat bottom/contain;filter:drop-shadow(0 8px 26px #00000088);}
+
+  .stories{display:flex;gap:20px;margin:24px 2px 6px;overflow:auto;padding-bottom:6px;}
   .story{display:flex;flex-direction:column;align-items:center;gap:8px;flex:none;width:76px;cursor:pointer;}
   .story .ring{width:66px;height:66px;border-radius:50%;padding:3px;background:var(--ig);}
   .story .ring .ic{width:100%;height:100%;border-radius:50%;background:#101014;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid #0a0a0c;}
   .story.add .ring{background:#2a2a30;}
   .story .lbl{font-size:11.5px;color:#c4c4cc;text-align:center;line-height:1.25;}
+
   .pstats{display:flex;gap:34px;margin:22px 4px 8px;padding:16px 4px;border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);}
   .pstat b{font-size:20px;font-weight:800;color:#fff;}
   .pstat span{font-size:12.5px;color:var(--mut);margin-left:6px;}
-  .tabs{display:flex;gap:26px;justify-content:center;margin:12px 0 14px;color:var(--mut);font-size:13px;}
+
+  /* 다음 예약 발행 */
+  .sched{margin:22px 0 6px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;}
+  .sched h3{font-size:14px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .sched h3 .em{font-size:15px;}
+  .sched .desc{font-size:12px;color:var(--mut);margin-bottom:12px;}
+  .srow{display:flex;align-items:center;gap:12px;padding:11px 4px;border-top:1px solid var(--line2);}
+  .srow:first-of-type{border-top:none;}
+  .srow .when{flex:none;width:132px;font-size:12.5px;color:#c4c4cc;font-weight:600;}
+  .srow .when b{display:block;color:#fff;font-size:13px;}
+  .srow .name{flex:1;font-size:13.5px;color:var(--tx);font-weight:600;}
+  .srow .cd{flex:none;font-size:11.5px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:4px 11px;}
+  .srow .cd.soon{color:#ffd27a;border-color:#ffd27a44;}
+
+  .tabs{display:flex;gap:26px;justify-content:center;margin:20px 0 14px;color:var(--mut);font-size:13px;}
   .tabs .on{color:#fff;border-top:2px solid #fff;padding-top:10px;margin-top:-12px;}
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
   .cell{position:relative;aspect-ratio:1/1;overflow:hidden;background:#0e0e12;border:1px solid var(--line2);display:block;}
@@ -55,7 +81,7 @@
   .note{grid-column:1/-1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;font-size:13px;color:var(--mut);text-align:center;line-height:1.7;}
   .note a{color:#d6a9ff;}
   .foot{margin-top:26px;color:#5f5f67;font-size:12.5px;text-align:center;line-height:1.8;}
-  @media(max-width:640px){.hero .char{opacity:.32;}.hero .in{max-width:100%;}.chip .hd{display:none;}}
+  @media(max-width:640px){.hero .char{opacity:.32;}.hero .in{max-width:100%;}.chip{display:none;}.acctab small{display:none;}.srow .when{width:112px;}}
 </style>
 </head>
 <body>
@@ -68,11 +94,23 @@
     </div>
   </div>
 
+  <!-- 계정 전환 탭 -->
+  <div class="acctabs">
+    <div class="acctab on" data-acct="1">
+      <span class="dot" id="tabpic1"><i></i></span>
+      <span>@topbanker99<br><small>탑뱅커 · 은행/금융</small></span>
+    </div>
+    <div class="acctab" data-acct="2">
+      <span class="dot" id="tabpic2"><i></i></span>
+      <span>@top_career_<br><small>탑커리어 · 공기업/건보</small></span>
+    </div>
+  </div>
+
   <div class="hero">
     <div class="in">
       <div class="badge"><span class="g"></span> 인스타그램 자동 발행</div>
-      <h1>안녕하세요,<br>오늘도 발행 도와드릴게요</h1>
-      <p>이미지 한 번 올리면 피드·릴스·쇼츠까지 한 곳에서.</p>
+      <h1 id="heroTitle">안녕하세요,<br>오늘도 발행 도와드릴게요</h1>
+      <p id="heroSub">이미지 한 번 올리면 피드·릴스·쇼츠까지 한 곳에서.</p>
       <a class="cta" href="/index.html">＋ 새 카드뉴스 만들기</a>
     </div>
     <div class="char"></div>
@@ -83,7 +121,7 @@
     <a class="story" href="/index.html"><div class="ring"><div class="ic">🎞️</div></div><div class="lbl">쇼츠</div></a>
     <a class="story" href="/index.html"><div class="ring"><div class="ic">▶️</div></div><div class="lbl">릴스</div></a>
     <a class="story" href="/index.html"><div class="ring"><div class="ic">📅</div></div><div class="lbl">예약</div></a>
-    <a class="story" href="https://www.instagram.com/topbanker99/" target="_blank"><div class="ring"><div class="ic">📷</div></div><div class="lbl">내 프로필</div></a>
+    <a class="story" id="profileLink" href="https://www.instagram.com/topbanker99/" target="_blank"><div class="ring"><div class="ic">📷</div></div><div class="lbl">내 프로필</div></a>
   </div>
 
   <div class="pstats">
@@ -92,52 +130,170 @@
     <div class="pstat"><b id="s-folg">–</b><span>팔로잉</span></div>
   </div>
 
+  <!-- 다음 예약 발행 -->
+  <div class="sched">
+    <h3><span class="em">📅</span> 다음 예약 발행 <span id="schedWho" style="color:var(--mut);font-weight:600;font-size:12px;"></span></h3>
+    <div class="desc" id="schedDesc">자동 발행 스케줄 기준으로 앞으로 예정된 발행을 보여줍니다.</div>
+    <div id="schedList"></div>
+  </div>
+
   <div class="tabs"><span class="on">▦ 최근 게시물</span></div>
   <div class="grid" id="grid"></div>
 
-  <div class="foot">
-    실제 인스타그램 계정(@topbanker99) 데이터를 실시간으로 불러옵니다 · 5분마다 갱신
+  <div class="foot" id="foot">
+    실제 인스타그램 계정 데이터를 실시간으로 불러옵니다 · 5분마다 갱신
   </div>
 </div>
 
 <script>
-  var fmt = function(n){ if(n==null) return '–'; if(n>=10000) return (n/1000).toFixed(1)+'k'; if(n>=1000) return (n/1000).toFixed(1)+'k'; return String(n); };
+  var fmt = function(n){ if(n==null) return '–'; if(n>=1000) return (n/1000).toFixed(1)+'k'; return String(n); };
   var esc = function(s){ return String(s||'').replace(/</g,'&lt;').replace(/"/g,'&quot;'); };
+
   var grid = document.getElementById('grid');
 
-  // 로딩 스켈레톤
-  var sk=''; for(var i=0;i<6;i++) sk+='<div class="cell skel"></div>'; grid.innerHTML=sk;
-
-  fetch('/api/ig-stats').then(function(r){ return r.json(); }).then(function(d){
-    if(!d || !d.ok){ throw new Error((d&&d.error)||'unknown'); }
-    // 계정
-    document.getElementById('s-media').textContent = fmt(d.mediaCount);
-    document.getElementById('s-fol').textContent   = fmt(d.followers);
-    document.getElementById('s-folg').textContent  = fmt(d.following);
-    if(d.username){ document.getElementById('navuser').textContent = '@'+d.username; }
-    if(d.profilePic){ document.getElementById('navpic').innerHTML = '<img src="'+esc(d.profilePic)+'" alt="">'; }
-
-    // 피드
-    var posts = d.posts || [];
-    if(!posts.length){
-      grid.innerHTML = '<div class="note">아직 불러올 게시물이 없거나, 토큰 권한이 부족할 수 있어요.<br>진단: <a href="/api/ig-stats" target="_blank">/api/ig-stats</a> 를 열어 errors 항목을 확인하세요.</div>';
-      return;
+  // ── 계정별 메타 & 자동발행 스케줄 (vercel.json crons 기준, KST) ──
+  var ACCT = {
+    1: {
+      user: 'topbanker99',
+      hero: ['탑뱅커 · 은행/금융', '용어·스펙·뉴스·릴스·에세이·기업분석까지 자동 발행 중이에요.'],
+      sched: [
+        { name:'용어 카드뉴스',  dow:[1,3,5], hh:9,  mm:0 },
+        { name:'뉴스 카드뉴스',  dow:[4],     hh:9,  mm:0 },
+        { name:'에세이',         dow:[0],     hh:9,  mm:0 },
+        { name:'스펙 카드뉴스',  dow:[0],     hh:12, mm:0 },
+        { name:'릴스',           dow:[2,6],   hh:18, mm:0 },
+        { name:'기업분석',       dow:[0,1,2,3,4,5,6], hh:20, mm:0 }
+      ]
+    },
+    2: {
+      user: 'top_career_',
+      hero: ['탑커리어 · 공기업/건보', '국민건강보험공단 기출 카드뉴스(NCS·법령)를 주 2회 자동 발행해요.'],
+      sched: [
+        { name:'NCS 기출 카드뉴스',  dow:[2], hh:10, mm:0 },
+        { name:'법령 기출 카드뉴스', dow:[5], hh:10, mm:0 }
+      ]
     }
-    var html='';
-    posts.forEach(function(p){
-      var badge = p.type==='VIDEO' ? '▶' : (p.type==='CAROUSEL_ALBUM' ? '▦' : '');
-      var ov = '';
-      if(p.likes!=null || p.comments!=null){
-        ov = '<div class="ov">'+(p.likes!=null?('♥ '+p.likes.toLocaleString()):'')+(p.comments!=null?('　💬 '+p.comments.toLocaleString()):'')+'</div>';
-      }
-      var img = p.thumb ? '<img loading="lazy" src="'+esc(p.thumb)+'" alt="">' : '';
-      var open = p.permalink ? (' href="'+esc(p.permalink)+'" target="_blank"') : '';
-      html += '<a class="cell"'+open+'>'+img+(badge?'<span class="type">'+badge+'</span>':'')+ov+'</a>';
+  };
+
+  var DOWK = ['일','월','화','수','목','금','토'];
+  var pad = function(n){ return (n<10?'0':'')+n; };
+
+  // 다음 발행 시각 계산 (오늘 이후 14일 내), 가까운 순 정렬 후 상위 6개
+  function upcoming(list){
+    var now = new Date();
+    var out = [];
+    for(var d=0; d<15; d++){
+      var day = new Date(now.getFullYear(), now.getMonth(), now.getDate()+d);
+      var dow = day.getDay();
+      list.forEach(function(s){
+        if(s.dow.indexOf(dow) === -1) return;
+        var t = new Date(day.getFullYear(), day.getMonth(), day.getDate(), s.hh, s.mm, 0);
+        if(t.getTime() <= now.getTime()) return; // 이미 지난 건 제외
+        out.push({ name:s.name, t:t });
+      });
+    }
+    out.sort(function(a,b){ return a.t - b.t; });
+    return out.slice(0, 6);
+  }
+
+  function renderSched(acct){
+    var meta = ACCT[acct];
+    var box = document.getElementById('schedList');
+    var items = upcoming(meta.sched);
+    document.getElementById('schedWho').textContent = '· @' + meta.user;
+    if(!items.length){ box.innerHTML = '<div style="color:var(--mut);font-size:13px;padding:6px 4px;">예정된 발행이 없습니다.</div>'; return; }
+    var now = new Date();
+    var html = '';
+    items.forEach(function(it){
+      var mins = Math.round((it.t - now)/60000);
+      var cd, soon='';
+      if(mins < 60){ cd = mins+'분 후'; soon=' soon'; }
+      else if(mins < 60*24){ cd = Math.round(mins/60)+'시간 후'; if(mins < 60*12) soon=' soon'; }
+      else { cd = Math.round(mins/60/24)+'일 후'; }
+      var mo = it.t.getMonth()+1, da = it.t.getDate(), dw = DOWK[it.t.getDay()];
+      html += '<div class="srow">'+
+        '<div class="when"><b>'+mo+'월 '+da+'일 ('+dw+')</b>'+pad(it.t.getHours())+':'+pad(it.t.getMinutes())+'</div>'+
+        '<div class="name">'+esc(it.name)+'</div>'+
+        '<div class="cd'+soon+'">'+cd+'</div>'+
+      '</div>';
     });
-    grid.innerHTML = html;
-  }).catch(function(err){
-    grid.innerHTML = '<div class="note">데이터를 불러오지 못했습니다 ('+esc(err.message)+').<br>진단: <a href="/api/ig-stats" target="_blank">/api/ig-stats</a> 를 열어 확인하세요. 팔로워/좋아요 읽기 권한(instagram_business_basic)이 토큰에 필요할 수 있습니다.</div>';
+    box.innerHTML = html;
+  }
+
+  // 최근 게시물 + 통계 로드
+  function loadStats(acct){
+    var meta = ACCT[acct];
+    // 히어로/프로필 즉시 갱신
+    document.getElementById('heroTitle').innerHTML = '@' + esc(meta.user) + '<br>모니터링 대시보드';
+    document.getElementById('heroSub').textContent = meta.hero[1];
+    document.getElementById('navuser').textContent = '@' + meta.user;
+    document.getElementById('profileLink').href = 'https://www.instagram.com/' + meta.user + '/';
+    // 스켈레톤
+    document.getElementById('s-media').textContent = '–';
+    document.getElementById('s-fol').textContent = '–';
+    document.getElementById('s-folg').textContent = '–';
+    var sk=''; for(var i=0;i<6;i++) sk+='<div class="cell skel"></div>'; grid.innerHTML=sk;
+
+    renderSched(acct);
+
+    fetch('/api/ig-stats?acct='+acct).then(function(r){ return r.json(); }).then(function(d){
+      if(!d || !d.ok){ throw new Error((d&&d.error)||'unknown'); }
+      document.getElementById('s-media').textContent = fmt(d.mediaCount);
+      document.getElementById('s-fol').textContent   = fmt(d.followers);
+      document.getElementById('s-folg').textContent  = fmt(d.following);
+      if(d.username){
+        document.getElementById('navuser').textContent = '@'+d.username;
+        document.getElementById('profileLink').href = 'https://www.instagram.com/'+d.username+'/';
+      }
+      if(d.profilePic){
+        var img = '<img src="'+esc(d.profilePic)+'" alt="">';
+        document.getElementById('navpic').innerHTML = img;
+        var tp = document.getElementById('tabpic'+acct); if(tp) tp.innerHTML = img;
+      }
+      var posts = d.posts || [];
+      if(!posts.length){
+        grid.innerHTML = '<div class="note">아직 불러올 게시물이 없거나, 토큰 권한이 부족할 수 있어요.<br>진단: <a href="/api/ig-stats?acct='+acct+'" target="_blank">/api/ig-stats?acct='+acct+'</a> 를 열어 errors 항목을 확인하세요.</div>';
+        return;
+      }
+      var html='';
+      posts.forEach(function(p){
+        var badge = p.type==='VIDEO' ? '▶' : (p.type==='CAROUSEL_ALBUM' ? '▦' : '');
+        var ov = '';
+        if(p.likes!=null || p.comments!=null){
+          ov = '<div class="ov">'+(p.likes!=null?('♥ '+p.likes.toLocaleString()):'')+(p.comments!=null?('　💬 '+p.comments.toLocaleString()):'')+'</div>';
+        }
+        var img = p.thumb ? '<img loading="lazy" src="'+esc(p.thumb)+'" alt="">' : '';
+        var open = p.permalink ? (' href="'+esc(p.permalink)+'" target="_blank"') : '';
+        html += '<a class="cell"'+open+'>'+img+(badge?'<span class="type">'+badge+'</span>':'')+ov+'</a>';
+      });
+      grid.innerHTML = html;
+    }).catch(function(err){
+      grid.innerHTML = '<div class="note">데이터를 불러오지 못했습니다 ('+esc(err.message)+').<br>진단: <a href="/api/ig-stats?acct='+acct+'" target="_blank">/api/ig-stats?acct='+acct+'</a> 를 열어 확인하세요. 팔로워/좋아요 읽기 권한(instagram_business_basic)이 토큰에 필요할 수 있습니다.</div>';
+    });
+  }
+
+  // 탭 전환
+  var current = 1;
+  Array.prototype.forEach.call(document.querySelectorAll('.acctab'), function(tab){
+    tab.addEventListener('click', function(){
+      var acct = parseInt(tab.getAttribute('data-acct'), 10);
+      if(acct === current) return;
+      current = acct;
+      Array.prototype.forEach.call(document.querySelectorAll('.acctab'), function(t){ t.classList.remove('on'); });
+      tab.classList.add('on');
+      loadStats(acct);
+    });
   });
+
+  // 최초 로드 (URL ?acct=2 지원)
+  var initA = 1;
+  try { var q = new URL(location.href).searchParams.get('acct'); if(q==='2'){ initA=2; } } catch(e){}
+  if(initA===2){
+    document.querySelector('.acctab[data-acct="1"]').classList.remove('on');
+    document.querySelector('.acctab[data-acct="2"]').classList.add('on');
+    current = 2;
+  }
+  loadStats(initA);
 </script>
 </body>
 </html>
