@@ -275,6 +275,11 @@ module.exports = async (req, res) => {
     const buildSec = ((Date.now() - t0) / 1000).toFixed(1);
 
     if (dryrun) {
+      if (q.json === '1') {
+        return out(200, { ok: true, dryrun: true, idx: idx + 1, code: item.code, title: item.title, bg: item.bg,
+          videoUrl: blob.url, durationSec: ep.outDur, narrDur: ep.narrDur, segCount: ep.segCount,
+          ttsMode: ep.ttsMode, buildSec, qa: ep.qa.map(x => ({ name: x[0], pass: x[1], note: x[2] })) });
+      }
       const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
       const qaHtml = ep.qa.map(x => `<li style="color:${x[1] ? '#7ee787' : '#ff7b72'}">${x[1] ? 'PASS' : 'FAIL'} · ${esc(x[0])} ${x[2] ? '— ' + esc(x[2]) : ''}</li>`).join('');
       const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>릴스 60일 미리보기 ${item.code}</title></head>
@@ -283,6 +288,7 @@ module.exports = async (req, res) => {
 <div style="color:#8a8a90;font-size:13px;margin:6px 0 12px">${esc(item.title)} · 배경 ${item.bg} · ${ep.outDur.toFixed(1)}초 · 자막 ${ep.segCount}개(${ep.ttsMode === 'timestamps' ? '글자 타임스탬프 싱크' : '문장 비례'}) · 빌드 ${buildSec}s</div>
 <video src="${blob.url}" controls autoplay playsinline loop style="width:100%;border-radius:14px;background:#000"></video>
 <div style="color:#9a9aa0;font-size:12px;margin-top:6px">소리를 켜고 확인하세요.</div>
+<div style="color:#6a6a70;font-size:11px;word-break:break-all;margin-top:4px">영상 URL: ${blob.url}</div>
 <ul style="font-size:13px;line-height:1.6;padding-left:18px">${qaHtml}</ul>
 <details open style="margin-top:8px"><summary style="color:#8a8a90;font-size:12px;cursor:pointer">발행 캡션</summary><pre style="white-space:pre-wrap;background:#111;padding:12px;border-radius:8px;font-size:12px;color:#bbb">${esc(item.caption)}</pre></details>
 </div></body></html>`;
