@@ -86,7 +86,7 @@ function segmentsFromAlign(align) {
     if (t0 === null && c.trim()) t0 = st[i];
     buf += c; if (c.trim()) t1 = en[i];
     const L = buf.trim().length;
-    if ((/[.!?…]/.test(c) && L >= 10) || (/[,]/.test(c) && L >= 20) || L >= 28) flush();
+    if ((/[.!?…]/.test(c) && L >= 8) || (/[,]/.test(c) && L >= 12) || L >= 18) flush();
   }
   flush();
   // 구간 다듬기: 최소 0.6s, 다음 시작 전까지
@@ -116,12 +116,13 @@ function wrapAss(t, maxLen) {
   }
   return best || t;
 }
-function buildAss(segs, hook) {
+function buildAss(segs, title, totalDur) {
   let ev = '';
-  // 훅: 0~2초 상단 대형 (이모지 없음 — DB 원문 그대로)
-  ev += `Dialogue: 1,${assTime(0)},${assTime(2)},Hook,,0,0,0,,${wrapAss(assEsc(hook), 12)}\n`;
+  // 상단 고정 제목 (전 구간 — 인트로/아웃트로 카드가 덮는 구간은 카드가 위에 보임)
+  ev += `Dialogue: 1,${assTime(0)},${assTime(totalDur)},Title,,0,0,0,,${wrapAss(assEsc(title), 16)}\n`;
+  // 쇼츠 스타일 싱크 자막: 짧은 구 단위, 굵은 흰 글씨 + 두꺼운 검정 아웃라인
   for (const s of segs) {
-    ev += `Dialogue: 0,${assTime(s.start)},${assTime(s.end)},Sub,,0,0,0,,${wrapAss(assEsc(s.text), 16)}\n`;
+    ev += `Dialogue: 0,${assTime(s.start)},${assTime(s.end)},Sub,,0,0,0,,${wrapAss(assEsc(s.text), 12)}\n`;
   }
   return `[Script Info]
 ScriptType: v4.00+
@@ -132,8 +133,8 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Sub,Pretendard,58,&H00FFFFFF,&H00FFFFFF,&H78000000,&H78000000,1,0,0,0,100,100,0,0,3,16,0,2,60,60,215,1
-Style: Hook,Pretendard,86,&H00FFFFFF,&H00FFFFFF,&H8C000000,&H8C000000,1,0,0,0,100,100,0,0,3,20,0,8,50,50,190,1
+Style: Sub,Pretendard,70,&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,1,0,0,0,100,100,0,0,1,7,2,2,50,50,470,1
+Style: Title,Pretendard,44,&H00FFFFFF,&H00FFFFFF,&HA0000000,&HA0000000,1,0,0,0,100,100,0,0,3,16,0,8,70,70,105,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -167,45 +168,72 @@ async function fetchTo(url, dest) {
   fs.writeFileSync(dest, Buffer.from(await r.arrayBuffer()));
 }
 
-/* ───────── 한 편 제작 ───────── */
+/* ───────── 한 편 제작 ─────────
+   구조: [인트로 카드 1.0s(음성 시작과 동시)] → [배경영상+쇼츠자막+상단제목] → [아웃트로 카드(음성 마지막 1.5s에 등장, +1.6s 홀드)] */
+const INTRO_DUR = 1.0, OUTRO_LEAD = 1.5, OUTRO_TAIL = 1.6;
 async function buildEpisode(item) {
   const os = require('os'), fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
   const FF = getFFmpeg();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'r60-'));
   try {
-    // 1) 에셋: 배경영상 + 폰트
+    // 1) 에셋: 배경영상 + 폰트 + 카드용 이미지(로고·캐릭터)
     const bgPath = path.join(dir, item.bg + '.mp4');
     await fetchTo(`${BASE}${ASSETS}/${item.bg}.mp4`, bgPath);
     const fontsDir = path.join(dir, 'fonts'); fs.mkdirSync(fontsDir);
-    await fetchTo(`${BASE}${ASSETS}/fonts/Pretendard-Bold.otf`, path.join(fontsDir, 'Pretendard-Bold.otf'));
-    await fetchTo(`${BASE}${ASSETS}/fonts/Pretendard-Regular.otf`, path.join(fontsDir, 'Pretendard-Regular.otf'));
+    const fBold = path.join(fontsDir, 'Pretendard-Bold.otf');
+    const fReg = path.join(fontsDir, 'Pretendard-Regular.otf');
+    await fetchTo(`${BASE}${ASSETS}/fonts/Pretendard-Bold.otf`, fBold);
+    await fetchTo(`${BASE}${ASSETS}/fonts/Pretendard-Regular.otf`, fReg);
+    const logoPath = path.join(dir, 'logo.png'), charPath = path.join(dir, 'char.png');
+    await fetchTo(`${BASE}${ASSETS}/nhis_logo_box.png`, logoPath);
+    await fetchTo(`${BASE}/character.png`, charPath);
 
-    // 2) TTS (전문 그대로, 60편 동일 보이스)
+    // 2) 인트로/아웃트로 카드 렌더 (@napi-rs/canvas)
+    const canvasMod = require('@napi-rs/canvas');
+    const { GlobalFonts, loadImage } = canvasMod;
+    GlobalFonts.register(fs.readFileSync(fBold), 'Pretendard Bold');
+    GlobalFonts.register(fs.readFileSync(fReg), 'Pretendard Regular');
+    const cards = require('./reels60-cards.js');
+    const assets = { logo: await loadImage(logoPath), char: await loadImage(charPath) };
+    const introPath = path.join(dir, 'intro.png'), outroPath = path.join(dir, 'outro.png');
+    const introBuf = cards.renderIntro(canvasMod, item, assets);
+    const outroBuf = cards.renderOutro(canvasMod, item, assets);
+    fs.writeFileSync(introPath, introBuf); fs.writeFileSync(outroPath, outroBuf);
+
+    // 3) TTS (전문 그대로, 60편 동일 보이스)
     const { buf, align, mode } = await ttsTimed(item.narration);
     const narrPath = path.join(dir, 'narr.mp3'); fs.writeFileSync(narrPath, buf);
     const narrDur = ffDur(FF, narrPath);
     if (!narrDur) throw new Error('나레이션 길이 측정 실패');
+    const total = narrDur + OUTRO_TAIL;
+    const outroStart = Math.max(INTRO_DUR + 1, narrDur - OUTRO_LEAD);
 
-    // 3) 자막(ASS): 싱크 세그먼트 + 훅 오버레이
+    // 4) 자막(ASS): 쇼츠 스타일 싱크 자막 + 상단 고정 제목
     const segs = align ? segmentsFromAlign(align) : segmentsProportional(item.narration, narrDur);
     const assPath = path.join(dir, 'subs.ass');
-    fs.writeFileSync(assPath, buildAss(segs, item.hook));
+    fs.writeFileSync(assPath, buildAss(segs, item.title, total));
 
-    // 4) 합성: 배경 무한 루프 + 음성 길이 컷(-shortest), 1080×1920/30fps, 자막 번인
+    // 5) 합성: 배경 루프 + 자막 → 인트로(0~1s)/아웃트로(끝) 카드 오버레이 → 음성 트랙
     const out = path.join(dir, 'out.mp4');
-    const vf = `scale=1080:1920:flags=lanczos,fps=30,subtitles=${assPath}:fontsdir=${fontsDir},format=yuv420p`;
-    execFileSync(FF, ['-y', '-stream_loop', '-1', '-i', bgPath, '-i', narrPath, '-shortest',
-      '-map', '0:v', '-map', '1:a', '-vf', vf,
+    const fc = `[0:v]scale=1080:1920:flags=lanczos,fps=30[bg];` +
+      `[bg]subtitles=${assPath}:fontsdir=${fontsDir}[sv];` +
+      `[sv][2:v]overlay=0:0:enable='lt(t,${INTRO_DUR})'[v1];` +
+      `[v1][3:v]overlay=0:0:enable='gte(t,${outroStart.toFixed(2)})'[v2];` +
+      `[v2]format=yuv420p[vout]`;
+    execFileSync(FF, ['-y', '-stream_loop', '-1', '-i', bgPath, '-i', narrPath,
+      '-loop', '1', '-i', introPath, '-loop', '1', '-i', outroPath,
+      '-filter_complex', fc, '-map', '[vout]', '-map', '1:a', '-af', 'apad',
       '-c:v', 'libx264', '-profile:v', 'high', '-preset', 'veryfast', '-r', '30', '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac', '-b:a', '128k', '-t', (narrDur + 0.15).toFixed(2),
+      '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2),
       '-movflags', '+faststart', out], { stdio: 'ignore' });
 
-    // 5) 검수(QA)
+    // 6) 검수(QA)
     const outDur = ffDur(FF, out);
     const info = ffInfo(FF, out);
     const qa = [];
-    const durDiff = Math.abs(outDur - narrDur);
-    qa.push(['길이 일치(±0.5s)', durDiff <= 0.5, `영상 ${outDur.toFixed(2)}s / 음성 ${narrDur.toFixed(2)}s / 차이 ${durDiff.toFixed(2)}s`]);
+    const durDiff = Math.abs(outDur - total);
+    qa.push(['길이 일치(음성+아웃트로 ±0.5s)', durDiff <= 0.5, `영상 ${outDur.toFixed(2)}s / 음성 ${narrDur.toFixed(2)}s+${OUTRO_TAIL}s / 차이 ${durDiff.toFixed(2)}s`]);
+    qa.push(['인트로/아웃트로 카드', introBuf.length > 5000 && outroBuf.length > 5000, `${(introBuf.length / 1024) | 0}KB/${(outroBuf.length / 1024) | 0}KB`]);
     qa.push(['해상도 1080×1920', /1080x1920/.test(info), '']);
     qa.push(['오디오 스트림', /Audio:\s*aac/.test(info), '']);
     const marker = item.season === 1 ? `[건보 면접 30일 릴스 ${item.code}]` : `[건보 면접 D-30 스프린트 ${item.code}]`;
