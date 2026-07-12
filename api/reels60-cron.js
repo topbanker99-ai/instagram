@@ -31,6 +31,8 @@ const TTS_MODEL = 'eleven_multilingual_v2';
 const PREVIEW_KEY = 'r60p-x7k2m9qe41';
 const NOT_BEFORE = Date.parse('2099-01-01T00:00:00Z'); // 시작일 확정 후 교체
 const BANNED = '온더탑스튜디오';
+// 중앙 배너(힉스필드 생성 → Blob 캐시). ?pkey&cacheUrl=<원본URL> 로 갱신
+const BANNER_URL = 'https://kznnn3ogeuwatyvq.public.blob.vercel-storage.com/reels60-assets/banner.png';
 
 /* ───────── Blob 진도/이력 ───────── */
 async function blobRead(key) {
@@ -131,13 +133,32 @@ function wrapAss(t, maxLen) {
   }
   return out.join('\\N');
 }
-function buildAss(segs, title, totalDur) {
+/* 핵심 단어 자동 하이라이트 (숫자+단위 우선, 임팩트 단어 차선 — 줄당 1개) */
+const NUMUNIT = /(D-\d+|\d+[\d.,:~대]*\s?(?:점|분|초|개|명|일|년|배|위|종|문항)?)/;
+const IMPACT = /(탈락|과락|합격|만점|금지|필수|위험|무너져|폭망|끝이야|진짜|핵심|비밀|공식|함정|주의)/;
+function hlLine(line, base, big) {
+  const m = line.match(NUMUNIT) || line.match(IMPACT);
+  if (!m || !m[0].trim()) return line;
+  const w = m[0].trim();
+  return line.replace(w, `{\\fs${big}\\c&H0000E5FF&}${w}{\\fs${base}\\c&HFFFFFF&}`);
+}
+function hlWrap(text, maxLen, base, big) {
+  return wrapAss(text, maxLen).split('\\N').map(l => hlLine(l, base, big)).join('\\N');
+}
+
+function buildAss(segs, titleMain, titleSub, totalDur) {
+  // 제목 폰트 크기: 글자수 기반 자동 축소(한 줄 기준), 24자 초과 시 2줄 균형
+  let tm = assEsc(titleMain), ts = assEsc(titleSub || '');
+  let fsMain = Math.min(128, Math.max(84, Math.floor(2050 / Math.max(1, tm.length))));
+  if (tm.length > 24) { tm = wrapAss(tm, Math.ceil(tm.length / 2) + 2); fsMain = 92; }
+  const fsSub = Math.min(64, Math.max(46, Math.floor(1700 / Math.max(1, ts.length || 1))));
+
   let ev = '';
-  // 상단 고정 제목 (전 구간 — 인트로/아웃트로 카드가 덮는 구간은 카드가 위에 보임)
-  ev += `Dialogue: 1,${assTime(0)},${assTime(totalDur)},Title,,0,0,0,,${wrapAss(assEsc(title), 16)}\n`;
-  // 쇼츠 스타일 싱크 자막: 짧은 구 단위, 굵은 흰 글씨 + 두꺼운 검정 아웃라인
+  ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TMain,,0,0,0,,{\\fs${fsMain}}${tm}\n`;
+  if (ts) ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TSub,,0,0,0,,{\\fs${fsSub}}${ts}\n`;
+  // 하단: 예능 팝 자막 (흰 글씨+블루 테두리+그림자, 핵심어 노랑+확대)
   for (const s of segs) {
-    ev += `Dialogue: 0,${assTime(s.start)},${assTime(s.end)},Sub,,0,0,0,,${wrapAss(assEsc(s.text), 12)}\n`;
+    ev += `Dialogue: 0,${assTime(s.start)},${assTime(s.end)},Sub,,0,0,0,,${hlWrap(assEsc(s.text), 12, 82, 102)}\n`;
   }
   return `[Script Info]
 ScriptType: v4.00+
@@ -148,8 +169,9 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Sub,Pretendard,70,&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,1,0,0,0,100,100,0,0,1,7,2,2,50,50,470,1
-Style: Title,Pretendard,44,&H00FFFFFF,&H00FFFFFF,&HA0000000,&HA0000000,1,0,0,0,100,100,0,0,3,16,0,8,70,70,105,1
+Style: Sub,Pretendard,82,&H00FFFFFF,&H00FFFFFF,&H00D46F1A,&H78000000,1,0,0,0,100,100,0,0,1,11,4,2,50,50,470,1
+Style: TMain,Black Han Sans,128,&H0000E5FF,&H00FFFFFF,&H00000000,&H96000000,0,0,0,0,100,100,1,0,1,8,4,8,40,40,80,1
+Style: TSub,Black Han Sans,64,&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,0,0,0,0,100,100,1,0,1,6,3,8,40,40,268,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -199,9 +221,19 @@ async function buildEpisode(item) {
     const fReg = path.join(fontsDir, 'Pretendard-Regular.otf');
     await fetchTo(`${BASE}${ASSETS}/fonts/Pretendard-Bold.otf`, fBold);
     await fetchTo(`${BASE}${ASSETS}/fonts/Pretendard-Regular.otf`, fReg);
+    await fetchTo(`${BASE}${ASSETS}/fonts/BlackHanSans-Regular.ttf`, path.join(fontsDir, 'BlackHanSans-Regular.ttf'));
+    const bandPath = path.join(dir, 'band.png');
+    await fetchTo(`${BASE}${ASSETS}/band_navy.png`, bandPath);
     const logoPath = path.join(dir, 'logo.png'), charPath = path.join(dir, 'char.png');
     await fetchTo(`${BASE}${ASSETS}/nhis_logo_box.png`, logoPath);
     await fetchTo(`${BASE}/character.png`, charPath);
+    // 중앙 배너(선택) — Blob에 캐시된 힉스필드 배너. 없으면 배너 없이 진행
+    let bannerPath = null;
+    try {
+      const bp = path.join(dir, 'banner.png');
+      await fetchTo(BANNER_URL, bp);
+      bannerPath = bp;
+    } catch (e) { bannerPath = null; }
 
     // 2) 인트로/아웃트로 카드 렌더 (@napi-rs/canvas)
     const canvasMod = require('@napi-rs/canvas');
@@ -223,21 +255,32 @@ async function buildEpisode(item) {
     const total = narrDur + OUTRO_TAIL;
     const outroStart = Math.max(INTRO_DUR + 1, narrDur - OUTRO_LEAD);
 
-    // 4) 자막(ASS): 쇼츠 스타일 싱크 자막 + 상단 고정 제목
+    // 4) 자막(ASS): 예능 팝 자막(핵심어 하이라이트) + 상단 초대형 제목(메인/서브)
     const segs = align ? segmentsFromAlign(align) : segmentsProportional(item.narration, narrDur);
+    const tparts = String(item.title).split(/\s+—\s+/);
+    const titleMain = tparts[0].trim(), titleSub = (tparts[1] || '').trim();
     const assPath = path.join(dir, 'subs.ass');
-    fs.writeFileSync(assPath, buildAss(segs, item.title, total));
+    fs.writeFileSync(assPath, buildAss(segs, titleMain, titleSub, total));
 
-    // 5) 합성: 배경 루프 + 자막 → 인트로(0~1s)/아웃트로(끝) 카드 오버레이 → 음성 트랙
+    // 5) 합성: 배경 루프 + 상단 음영 밴드 (+중앙 배너) + 자막 → 인트로/아웃트로 카드 → 음성
     const out = path.join(dir, 'out.mp4');
-    const fc = `[0:v]scale=1080:1920:flags=lanczos,fps=30[bg];` +
-      `[bg]subtitles=${assPath}:fontsdir=${fontsDir}[sv];` +
+    const inputs = ['-stream_loop', '-1', '-i', bgPath, '-i', narrPath,
+      '-loop', '1', '-i', introPath, '-loop', '1', '-i', outroPath,
+      '-loop', '1', '-i', bandPath];
+    let chain = `[0:v]scale=1080:1920:flags=lanczos,fps=30[bg];` +
+      `[bg][4:v]overlay=0:0[bb];`;
+    let last = 'bb';
+    if (bannerPath) {
+      inputs.push('-loop', '1', '-i', bannerPath);
+      chain += `[5:v]scale=780:-1[bn];[${last}][bn]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable='gte(t,${INTRO_DUR})'[bw];`;
+      last = 'bw';
+    }
+    chain += `[${last}]subtitles=${assPath}:fontsdir=${fontsDir}[sv];` +
       `[sv][2:v]overlay=0:0:enable='lt(t,${INTRO_DUR})'[v1];` +
       `[v1][3:v]overlay=0:0:enable='gte(t,${outroStart.toFixed(2)})'[v2];` +
       `[v2]format=yuv420p[vout]`;
-    execFileSync(FF, ['-y', '-stream_loop', '-1', '-i', bgPath, '-i', narrPath,
-      '-loop', '1', '-i', introPath, '-loop', '1', '-i', outroPath,
-      '-filter_complex', fc, '-map', '[vout]', '-map', '1:a', '-af', 'apad',
+    execFileSync(FF, ['-y', ...inputs,
+      '-filter_complex', chain, '-map', '[vout]', '-map', '1:a', '-af', 'apad',
       '-c:v', 'libx264', '-profile:v', 'high', '-preset', 'veryfast', '-r', '30', '-pix_fmt', 'yuv420p',
       '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2),
       '-movflags', '+faststart', out], { stdio: 'ignore' });
@@ -249,6 +292,7 @@ async function buildEpisode(item) {
     const durDiff = Math.abs(outDur - total);
     qa.push(['길이 일치(음성+아웃트로 ±0.5s)', durDiff <= 0.5, `영상 ${outDur.toFixed(2)}s / 음성 ${narrDur.toFixed(2)}s+${OUTRO_TAIL}s / 차이 ${durDiff.toFixed(2)}s`]);
     qa.push(['인트로/아웃트로 카드', introBuf.length > 5000 && outroBuf.length > 5000, `${(introBuf.length / 1024) | 0}KB/${(outroBuf.length / 1024) | 0}KB`]);
+    qa.push(['중앙 배너', true, bannerPath ? '적용' : '없음(Blob 캐시 전)']);
     qa.push(['해상도 1080×1920', /1080x1920/.test(info), '']);
     qa.push(['오디오 스트림', /Audio:\s*aac/.test(info), '']);
     const marker = item.season === 1 ? `[건보 면접 30일 릴스 ${item.code}]` : `[건보 면접 D-30 스프린트 ${item.code}]`;
@@ -296,11 +340,19 @@ module.exports = async (req, res) => {
   const manual = q.secret || req.headers['x-publish-secret'];
   const cronOk = process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`;
   const manualOk = process.env.PUBLISH_SECRET && manual === process.env.PUBLISH_SECRET;
-  const previewOk = dryrun && q.pkey === PREVIEW_KEY;
+  const previewOk = q.pkey === PREVIEW_KEY && (dryrun || q.cacheUrl);
   if (!cronOk && !manualOk && !previewOk) return out(401, { ok: false, error: '인증 실패' });
 
   const forced = parseInt(q.day, 10);
   try {
+    // 에셋 캐시 액션: 외부 URL(힉스필드 등)을 받아 Blob 고정 경로에 저장
+    if (q.cacheUrl) {
+      const r = await fetch(q.cacheUrl);
+      if (!r.ok) return out(400, { ok: false, error: '원본 다운로드 실패 ' + r.status });
+      const buf = Buffer.from(await r.arrayBuffer());
+      const b = await put('reels60-assets/banner.png', buf, { access: 'public', contentType: 'image/png', addRandomSuffix: false, allowOverwrite: true, token: process.env.BLOB_READ_WRITE_TOKEN });
+      return out(200, { ok: true, cached: true, bytes: buf.length, url: b.url });
+    }
     // 시작일 가드 (dryrun·강제 지정은 통과)
     if (!dryrun && !forced && Date.now() < NOT_BEFORE) {
       return out(200, { ok: true, skipped: true, reason: '시작일 이전 — 발행 안 함' });
