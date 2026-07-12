@@ -147,11 +147,11 @@ function hlWrap(text, maxLen, base, big) {
 }
 
 function buildAss(segs, titleMain, titleSub, totalDur) {
-  // 제목 폰트 크기: 글자수 기반 자동 축소(한 줄 기준), 24자 초과 시 2줄 균형
+  // 제목(노란 음영 밴드 y470~760 위, 진네이비 글씨) — 글자수 기반 자동 축소, 24자 초과 시 2줄
   let tm = assEsc(titleMain), ts = assEsc(titleSub || '');
-  let fsMain = Math.min(128, Math.max(84, Math.floor(2050 / Math.max(1, tm.length))));
-  if (tm.length > 24) { tm = wrapAss(tm, Math.ceil(tm.length / 2) + 2); fsMain = 92; }
-  const fsSub = Math.min(64, Math.max(46, Math.floor(1700 / Math.max(1, ts.length || 1))));
+  let fsMain = Math.min(104, Math.max(70, Math.floor(1900 / Math.max(1, tm.length))));
+  if (tm.length > 24) { tm = wrapAss(tm, Math.ceil(tm.length / 2) + 2); fsMain = 78; }
+  const fsSub = Math.min(54, Math.max(38, Math.floor(1500 / Math.max(1, ts.length || 1))));
 
   let ev = '';
   ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TMain,,0,0,0,,{\\fs${fsMain}}${tm}\n`;
@@ -170,8 +170,8 @@ ScaledBorderAndShadow: yes
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Sub,Pretendard,82,&H00FFFFFF,&H00FFFFFF,&H00D46F1A,&H78000000,1,0,0,0,100,100,0,0,1,11,4,2,50,50,470,1
-Style: TMain,Black Han Sans,128,&H0000E5FF,&H00FFFFFF,&H00000000,&H96000000,0,0,0,0,100,100,1,0,1,8,4,8,40,40,80,1
-Style: TSub,Black Han Sans,64,&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,0,0,0,0,100,100,1,0,1,6,3,8,40,40,268,1
+Style: TMain,Black Han Sans,104,&H00401505,&H00FFFFFF,&H0000E5FF,&H00000000,0,0,0,0,100,100,1,0,1,0,0,8,40,40,505,1
+Style: TSub,Black Han Sans,54,&H00401505,&H00FFFFFF,&H0000E5FF,&H00000000,0,0,0,0,100,100,1,0,1,0,0,8,40,40,652,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -223,7 +223,7 @@ async function buildEpisode(item) {
     await fetchTo(`${BASE}${ASSETS}/fonts/Pretendard-Regular.otf`, fReg);
     await fetchTo(`${BASE}${ASSETS}/fonts/BlackHanSans-Regular.ttf`, path.join(fontsDir, 'BlackHanSans-Regular.ttf'));
     const bandPath = path.join(dir, 'band.png');
-    await fetchTo(`${BASE}${ASSETS}/band_navy.png`, bandPath);
+    await fetchTo(`${BASE}${ASSETS}/band_yellow_mid.png`, bandPath);
     const logoPath = path.join(dir, 'logo.png'), charPath = path.join(dir, 'char.png');
     await fetchTo(`${BASE}${ASSETS}/nhis_logo_box.png`, logoPath);
     await fetchTo(`${BASE}/character.png`, charPath);
@@ -271,8 +271,9 @@ async function buildEpisode(item) {
       `[bg][4:v]overlay=0:0[bb];`;
     let last = 'bb';
     if (bannerPath) {
+      // 배너(투명 PNG)는 화면 최상단 중앙 — 그 아래 노란 음영 제목, 그 아래 자막 순서
       inputs.push('-loop', '1', '-i', bannerPath);
-      chain += `[5:v]scale=780:-1[bn];[${last}][bn]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable='gte(t,${INTRO_DUR})'[bw];`;
+      chain += `[5:v]scale=820:-1[bn];[${last}][bn]overlay=(main_w-overlay_w)/2:36[bw];`;
       last = 'bw';
     }
     chain += `[${last}]subtitles=${assPath}:fontsdir=${fontsDir}[sv];` +
