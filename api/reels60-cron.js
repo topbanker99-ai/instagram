@@ -108,13 +108,28 @@ function segmentsProportional(text, dur) {
 function assTime(s) { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = (s % 60); return `${h}:${String(m).padStart(2, '0')}:${sec.toFixed(2).padStart(5, '0')}`; }
 function assEsc(t) { return String(t).replace(/[{}]/g, '').replace(/\n/g, '\\N'); }
 function wrapAss(t, maxLen) {
+  t = String(t);
   if (t.length <= maxLen) return t;
+  // 1) 2줄 균형 분할 시도
   const words = t.split(' '); let best = null, bd = 1e9;
   for (let i = 1; i < words.length; i++) {
     const a = words.slice(0, i).join(' '), b = words.slice(i).join(' ');
     if (a.length <= maxLen && b.length <= maxLen && Math.abs(a.length - b.length) < bd) { best = a + '\\N' + b; bd = Math.abs(a.length - b.length); }
   }
-  return best || t;
+  if (best) return best;
+  // 2) 그리디 다중 줄 (공백 우선, 초과 시 글자 단위 강제 분할) — 화면 폭 초과 방지
+  const lines = []; let cur = '';
+  for (const w of words) {
+    if (!cur) { cur = w; continue; }
+    if ((cur + ' ' + w).length <= maxLen) cur += ' ' + w; else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  const out = [];
+  for (let ln of lines) {
+    while (ln.length > maxLen) { out.push(ln.slice(0, maxLen)); ln = ln.slice(maxLen); }
+    if (ln) out.push(ln);
+  }
+  return out.join('\\N');
 }
 function buildAss(segs, title, totalDur) {
   let ev = '';
@@ -128,7 +143,7 @@ function buildAss(segs, title, totalDur) {
 ScriptType: v4.00+
 PlayResX: 1080
 PlayResY: 1920
-WrapStyle: 2
+WrapStyle: 0
 ScaledBorderAndShadow: yes
 
 [V4+ Styles]
