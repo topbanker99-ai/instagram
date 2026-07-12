@@ -197,7 +197,8 @@ async function buildEpisode(item) {
     execFileSync(FF, ['-y', '-stream_loop', '-1', '-i', bgPath, '-i', narrPath, '-shortest',
       '-map', '0:v', '-map', '1:a', '-vf', vf,
       '-c:v', 'libx264', '-profile:v', 'high', '-preset', 'veryfast', '-r', '30', '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', out], { stdio: 'ignore' });
+      '-c:a', 'aac', '-b:a', '128k', '-t', (narrDur + 0.15).toFixed(2),
+      '-movflags', '+faststart', out], { stdio: 'ignore' });
 
     // 5) 검수(QA)
     const outDur = ffDur(FF, out);
