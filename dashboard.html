@@ -169,7 +169,7 @@
       user: 'top_career_',
       hero: ['탑커리어 · 공기업/건보', '국민건강보험공단 콘텐츠(면접·NCS·스펙·필기·법령)를 주 5회 자동 발행해요.'],
       sched: [
-        { name:'면접 60일 카드뉴스', dow:[1], hh:19, mm:0 },
+        { name:'면접 60일 카드뉴스', dow:[1], hh:19, mm:0, from:'2026-07-20' },
         { name:'NCS 기출 카드뉴스',  dow:[2], hh:10, mm:0 },
         { name:'합격 스펙 카드뉴스', dow:[3], hh:10, mm:0 },
         { name:'필기 공략 카드뉴스', dow:[4], hh:19, mm:0 },
@@ -192,6 +192,7 @@
         if(s.dow.indexOf(dow) === -1) return;
         var t = new Date(day.getFullYear(), day.getMonth(), day.getDate(), s.hh, s.mm, 0);
         if(t.getTime() <= now.getTime()) return; // 이미 지난 건 제외
+        if(s.from && t.getTime() < new Date(s.from + 'T00:00:00').getTime()) return; // 시작일 이전 제외
         out.push({ name:s.name, t:t });
       });
     }
