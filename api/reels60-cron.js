@@ -79,30 +79,53 @@ async function ttsTimed(text) {
 }
 
 /* ───────── 자막 세그먼트 (글자 정렬 → 구간) ───────── */
+/* 자막 분할 원칙: 문장 단위(.!?…)로만 끊는다. 34자 초과 문장만 콤마→띄어쓰기 순으로
+   분할하되 단어 중간에서는 절대 자르지 않는다(잘린 자막 방지). */
+const SEG_MAXC = 34;
 function segmentsFromAlign(align) {
   const chars = align.characters, st = align.character_start_times_seconds, en = align.character_end_times_seconds;
-  const segs = []; let buf = '', t0 = null, t1 = null;
-  const flush = () => { const t = buf.trim(); if (t) segs.push({ text: t, start: t0, end: t1 }); buf = ''; t0 = null; };
+  const segs = [];
+  const emit = (a, b) => {
+    while (a <= b && !String(chars[a]).trim()) a++;
+    while (b >= a && !String(chars[b]).trim()) b--;
+    if (a > b) return;
+    const text = chars.slice(a, b + 1).join('');
+    if (text.length <= SEG_MAXC) { segs.push({ text, start: st[a], end: en[b] }); return; }
+    const mid = Math.floor((a + b) / 2);
+    let cut = -1;
+    for (let i = a + 4; i <= b - 4; i++) if (chars[i] === ',') { if (cut === -1 || Math.abs(i - mid) < Math.abs(cut - mid)) cut = i; }
+    if (cut === -1) for (let i = a + 2; i <= b - 2; i++) if (chars[i] === ' ') { if (cut === -1 || Math.abs(i - mid) < Math.abs(cut - mid)) cut = i; }
+    if (cut === -1) { segs.push({ text, start: st[a], end: en[b] }); return; }
+    emit(a, cut); emit(cut + 1, b);
+  };
+  let s = 0;
   for (let i = 0; i < chars.length; i++) {
-    const c = chars[i];
-    if (t0 === null && c.trim()) t0 = st[i];
-    buf += c; if (c.trim()) t1 = en[i];
-    const L = buf.trim().length;
-    if ((/[.!?…]/.test(c) && L >= 8) || (/[,]/.test(c) && L >= 12) || L >= 18) flush();
+    if (/[.!?…]/.test(chars[i])) { emit(s, i); s = i + 1; }
   }
-  flush();
-  // 구간 다듬기: 최소 0.6s, 다음 시작 전까지
+  if (s < chars.length) emit(s, chars.length - 1);
+  segs.sort((x, y) => x.start - y.start);
   for (let i = 0; i < segs.length; i++) {
-    if (i < segs.length - 1) segs[i].end = Math.min(Math.max(segs[i].end + 0.15, segs[i].start + 0.6), segs[i + 1].start);
+    if (i < segs.length - 1) segs[i].end = Math.min(Math.max(segs[i].end + 0.12, segs[i].start + 0.6), segs[i + 1].start);
     else segs[i].end = Math.max(segs[i].end + 0.2, segs[i].start + 0.6);
   }
   return segs;
 }
+function chunkSentence(t) {
+  t = t.trim();
+  if (t.length <= SEG_MAXC) return [t];
+  const mid = Math.floor(t.length / 2);
+  let cut = -1;
+  for (let i = 4; i <= t.length - 5; i++) if (t[i] === ',') { if (cut === -1 || Math.abs(i - mid) < Math.abs(cut - mid)) cut = i; }
+  if (cut === -1) for (let i = 2; i <= t.length - 3; i++) if (t[i] === ' ') { if (cut === -1 || Math.abs(i - mid) < Math.abs(cut - mid)) cut = i; }
+  if (cut === -1) return [t];
+  return [...chunkSentence(t.slice(0, cut + 1)), ...chunkSentence(t.slice(cut + 1))];
+}
 function segmentsProportional(text, dur) {
   const sents = text.split(/(?<=[.!?…])\s+/).map(s => s.trim()).filter(Boolean);
-  const total = sents.reduce((a, s) => a + s.length, 0) || 1;
+  const chunks = sents.flatMap(chunkSentence);
+  const total = chunks.reduce((a, s) => a + s.length, 0) || 1;
   let t = 0; const segs = [];
-  for (const s of sents) { const d = Math.max(0.8, dur * (s.length / total)); segs.push({ text: s, start: t, end: Math.min(t + d, dur) }); t += d; }
+  for (const s of chunks) { const d = Math.max(0.8, dur * (s.length / total)); segs.push({ text: s, start: t, end: Math.min(t + d, dur) }); t += d; }
   return segs;
 }
 
