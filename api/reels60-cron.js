@@ -231,8 +231,10 @@ async function fetchTo(url, dest) {
 }
 
 /* ───────── 한 편 제작 ─────────
-   구조: [인트로 카드 1.0s(음성 시작과 동시)] → [배경영상+쇼츠자막+상단제목] → [아웃트로 카드(음성 마지막 1.5s에 등장, +1.6s 홀드)] */
-const INTRO_DUR = 1.0, OUTRO_LEAD = 1.5, OUTRO_TAIL = 1.6;
+   구조: [배경영상+배너+제목+쇼츠자막 — 처음부터 바로] → [아웃트로 카드(음성 마지막 1.5s에 등장, +1.6s 홀드)] */
+const OUTRO_LEAD = 1.5, OUTRO_TAIL = 1.6;
+const BLOB_ASSETS = 'https://kznnn3ogeuwatyvq.public.blob.vercel-storage.com/reels60-assets';
+const BLOB_BGS = ['V6', 'V7', 'V8', 'V9', 'V10']; // 힉스필드 추가 생성분 — Blob에서 서빙
 async function buildEpisode(item) {
   const os = require('os'), fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
   const FF = getFFmpeg();
@@ -240,7 +242,8 @@ async function buildEpisode(item) {
   try {
     // 1) 에셋: 배경영상 + 폰트 + 카드용 이미지(로고·캐릭터)
     const bgPath = path.join(dir, item.bg + '.mp4');
-    await fetchTo(`${BASE}${ASSETS}/${item.bg}.mp4`, bgPath);
+    const bgUrl = BLOB_BGS.includes(item.bg) ? `${BLOB_ASSETS}/${item.bg}.mp4` : `${BASE}${ASSETS}/${item.bg}.mp4`;
+    await fetchTo(bgUrl, bgPath);
     const fontsDir = path.join(dir, 'fonts'); fs.mkdirSync(fontsDir);
     const fBold = path.join(fontsDir, 'Pretendard-Bold.otf');
     const fReg = path.join(fontsDir, 'Pretendard-Regular.otf');
@@ -260,17 +263,16 @@ async function buildEpisode(item) {
       bannerPath = bp;
     } catch (e) { bannerPath = null; }
 
-    // 2) 인트로/아웃트로 카드 렌더 (@napi-rs/canvas)
+    // 2) 아웃트로 카드 렌더 (@napi-rs/canvas) — 인트로 카드는 사용자 지시로 제거
     const canvasMod = require('@napi-rs/canvas');
     const { GlobalFonts, loadImage } = canvasMod;
     GlobalFonts.register(fs.readFileSync(fBold), 'Pretendard Bold');
     GlobalFonts.register(fs.readFileSync(fReg), 'Pretendard Regular');
     const cards = require('./reels60-cards.js');
     const assets = { logo: await loadImage(logoPath), char: await loadImage(charPath) };
-    const introPath = path.join(dir, 'intro.png'), outroPath = path.join(dir, 'outro.png');
-    const introBuf = cards.renderIntro(canvasMod, item, assets);
+    const outroPath = path.join(dir, 'outro.png');
     const outroBuf = cards.renderOutro(canvasMod, item, assets);
-    fs.writeFileSync(introPath, introBuf); fs.writeFileSync(outroPath, outroBuf);
+    fs.writeFileSync(outroPath, outroBuf);
 
     // 3) TTS — 시리즈 인트로 고정 문구 + 원문 나레이션 (60편 동일 보이스)
     const narrText = SERIES_INTRO + ' ' + item.narration;
@@ -279,7 +281,7 @@ async function buildEpisode(item) {
     const narrDur = ffDur(FF, narrPath);
     if (!narrDur) throw new Error('나레이션 길이 측정 실패');
     const total = narrDur + OUTRO_TAIL;
-    const outroStart = Math.max(INTRO_DUR + 1, narrDur - OUTRO_LEAD);
+    const outroStart = Math.max(2, narrDur - OUTRO_LEAD);
 
     // 4) 자막(ASS): 예능 팝 자막(핵심어 하이라이트) + 상단 초대형 제목(의문문 메인/서브)
     const segs = align ? segmentsFromAlign(align) : segmentsProportional(narrText, narrDur);
@@ -288,23 +290,22 @@ async function buildEpisode(item) {
     const assPath = path.join(dir, 'subs.ass');
     fs.writeFileSync(assPath, buildAss(segs, titleMain, titleSub, total));
 
-    // 5) 합성: 배경 루프 + 상단 음영 밴드 (+중앙 배너) + 자막 → 인트로/아웃트로 카드 → 음성
+    // 5) 합성: 배경 루프 + 상단 음영 밴드 (+최상단 배너) + 자막 → 아웃트로 카드 → 음성
     const out = path.join(dir, 'out.mp4');
     const inputs = ['-stream_loop', '-1', '-i', bgPath, '-i', narrPath,
-      '-loop', '1', '-i', introPath, '-loop', '1', '-i', outroPath,
+      '-loop', '1', '-i', outroPath,
       '-loop', '1', '-i', bandPath];
     let chain = `[0:v]scale=1080:1920:flags=lanczos,fps=30[bg];` +
-      `[bg][4:v]overlay=0:0[bb];`;
+      `[bg][3:v]overlay=0:0[bb];`;
     let last = 'bb';
     if (bannerPath) {
       // 배너(투명 PNG)는 화면 최상단 중앙 — 그 아래 노란 음영 제목, 그 아래 자막 순서
       inputs.push('-loop', '1', '-i', bannerPath);
-      chain += `[5:v]scale=920:-1[bn];[${last}][bn]overlay=(main_w-overlay_w)/2:20[bw];`;
+      chain += `[4:v]scale=920:-1[bn];[${last}][bn]overlay=(main_w-overlay_w)/2:20[bw];`;
       last = 'bw';
     }
     chain += `[${last}]subtitles=${assPath}:fontsdir=${fontsDir}[sv];` +
-      `[sv][2:v]overlay=0:0:enable='lt(t,${INTRO_DUR})'[v1];` +
-      `[v1][3:v]overlay=0:0:enable='gte(t,${outroStart.toFixed(2)})'[v2];` +
+      `[sv][2:v]overlay=0:0:enable='gte(t,${outroStart.toFixed(2)})'[v2];` +
       `[v2]format=yuv420p[vout]`;
     execFileSync(FF, ['-y', ...inputs,
       '-filter_complex', chain, '-map', '[vout]', '-map', '1:a', '-af', 'apad',
@@ -318,7 +319,7 @@ async function buildEpisode(item) {
     const qa = [];
     const durDiff = Math.abs(outDur - total);
     qa.push(['길이 일치(음성+아웃트로 ±0.5s)', durDiff <= 0.5, `영상 ${outDur.toFixed(2)}s / 음성 ${narrDur.toFixed(2)}s+${OUTRO_TAIL}s / 차이 ${durDiff.toFixed(2)}s`]);
-    qa.push(['인트로/아웃트로 카드', introBuf.length > 5000 && outroBuf.length > 5000, `${(introBuf.length / 1024) | 0}KB/${(outroBuf.length / 1024) | 0}KB`]);
+    qa.push(['아웃트로 카드', outroBuf.length > 5000, `${(outroBuf.length / 1024) | 0}KB`]);
     qa.push(['중앙 배너', true, bannerPath ? '적용' : '없음(Blob 캐시 전)']);
     qa.push(['해상도 1080×1920', /1080x1920/.test(info), '']);
     qa.push(['오디오 스트림', /Audio:\s*aac/.test(info), '']);
@@ -372,13 +373,15 @@ module.exports = async (req, res) => {
 
   const forced = parseInt(q.day, 10);
   try {
-    // 에셋 캐시 액션: 외부 URL(힉스필드 등)을 받아 Blob 고정 경로에 저장
+    // 에셋 캐시 액션: 외부 URL(힉스필드 등)을 받아 Blob 고정 경로에 저장 (?name=V6.mp4, 기본 banner.png)
     if (q.cacheUrl) {
+      const name = /^[A-Za-z0-9._-]{1,40}$/.test(q.name || '') ? q.name : 'banner.png';
+      const ct = name.endsWith('.mp4') ? 'video/mp4' : 'image/png';
       const r = await fetch(q.cacheUrl);
       if (!r.ok) return out(400, { ok: false, error: '원본 다운로드 실패 ' + r.status });
       const buf = Buffer.from(await r.arrayBuffer());
-      const b = await put('reels60-assets/banner.png', buf, { access: 'public', contentType: 'image/png', addRandomSuffix: false, allowOverwrite: true, token: process.env.BLOB_READ_WRITE_TOKEN });
-      return out(200, { ok: true, cached: true, bytes: buf.length, url: b.url });
+      const b = await put('reels60-assets/' + name, buf, { access: 'public', contentType: ct, addRandomSuffix: false, allowOverwrite: true, token: process.env.BLOB_READ_WRITE_TOKEN });
+      return out(200, { ok: true, cached: true, name, bytes: buf.length, url: b.url });
     }
     // 시작일 가드 (dryrun·강제 지정은 통과)
     if (!dryrun && !forced && Date.now() < NOT_BEFORE) {
