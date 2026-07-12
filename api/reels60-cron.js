@@ -273,7 +273,7 @@ async function buildEpisode(item) {
     if (bannerPath) {
       // 배너(투명 PNG)는 화면 최상단 중앙 — 그 아래 노란 음영 제목, 그 아래 자막 순서
       inputs.push('-loop', '1', '-i', bannerPath);
-      chain += `[5:v]scale=820:-1[bn];[${last}][bn]overlay=(main_w-overlay_w)/2:36[bw];`;
+      chain += `[5:v]scale=920:-1[bn];[${last}][bn]overlay=(main_w-overlay_w)/2:20[bw];`;
       last = 'bw';
     }
     chain += `[${last}]subtitles=${assPath}:fontsdir=${fontsDir}[sv];` +
