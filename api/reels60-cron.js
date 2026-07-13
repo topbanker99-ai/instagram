@@ -172,15 +172,18 @@ function hlWrap(text, maxLen, base, big) {
 }
 
 function buildAss(segs, titleMain, titleSub, totalDur) {
-  // 제목(노란 음영 밴드 y470~760 위, 진네이비 글씨) — 글자수 기반 자동 축소, 24자 초과 시 2줄
-  let tm = assEsc(titleMain), ts = assEsc(titleSub || '');
-  let fsMain = Math.min(104, Math.max(70, Math.floor(1900 / Math.max(1, tm.length))));
-  if (tm.length > 24) { tm = wrapAss(tm, Math.ceil(tm.length / 2) + 2); fsMain = 78; }
-  const fsSub = Math.min(54, Math.max(38, Math.floor(1500 / Math.max(1, ts.length || 1))));
+  // 제목(노란 음영 밴드 y450~800) — 메인·서브 전부 동일 크기(사용자 지시), 서브는 항상 별도 줄, 밴드 중앙 정렬
+  const mainW = wrapAss(assEsc(titleMain), 12);
+  const subW = titleSub ? wrapAss(assEsc(titleSub), 12) : '';
+  const wrapped = subW ? mainW + '\\N' + subW : mainW;
+  const tLines = wrapped.split('\\N');
+  const maxLen = Math.max(...tLines.map(l => l.replace(/\{[^}]*\}/g, '').length), 1);
+  const n = tLines.length;
+  const fs = Math.max(48, Math.min(88, Math.floor(1040 / maxLen), Math.floor(310 / (n * 1.22))));
+  const topMargin = Math.max(462, Math.round(625 - (n * fs * 1.22) / 2));
 
   let ev = '';
-  ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TMain,,0,0,0,,{\\fs${fsMain}}${tm}\n`;
-  if (ts) ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TSub,,0,0,0,,{\\fs${fsSub}}${ts}\n`;
+  ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TMain,,0,0,${topMargin},,{\\fs${fs}}${wrapped}\n`;
   // 하단: 예능 팝 자막 (흰 글씨+블루 테두리+그림자, 핵심어 노랑+확대)
   for (const s of segs) {
     ev += `Dialogue: 0,${assTime(s.start)},${assTime(s.end)},Sub,,0,0,0,,${hlWrap(assEsc(s.text), 12, 82, 102)}\n`;
@@ -241,9 +244,17 @@ async function buildEpisode(item) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'r60-'));
   try {
     // 1) 에셋: 배경영상 + 폰트 + 카드용 이미지(로고·캐릭터)
-    const bgPath = path.join(dir, item.bg + '.mp4');
-    const bgUrl = BLOB_BGS.includes(item.bg) ? `${BLOB_ASSETS}/${item.bg}.mp4` : `${BASE}${ASSETS}/${item.bg}.mp4`;
-    await fetchTo(bgUrl, bgPath);
+    // 배경 3개 조합(사용자 지시): 테마 영상 1개 + 나머지 9개 중 랜덤 2개를 이어붙임
+    const ALL_BGS = ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10'];
+    const others = ALL_BGS.filter(v => v !== item.bg);
+    for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; }
+    const bgs = [item.bg, others[0], others[1]];
+    const bgPaths = [];
+    for (const v of bgs) {
+      const p = path.join(dir, v + '.mp4');
+      const u = BLOB_BGS.includes(v) ? `${BLOB_ASSETS}/${v}.mp4` : `${BASE}${ASSETS}/${v}.mp4`;
+      await fetchTo(u, p); bgPaths.push(p);
+    }
     const fontsDir = path.join(dir, 'fonts'); fs.mkdirSync(fontsDir);
     const fBold = path.join(fontsDir, 'Pretendard-Bold.otf');
     const fReg = path.join(fontsDir, 'Pretendard-Regular.otf');
@@ -290,25 +301,35 @@ async function buildEpisode(item) {
     const assPath = path.join(dir, 'subs.ass');
     fs.writeFileSync(assPath, buildAss(segs, titleMain, titleSub, total));
 
-    // 5) 합성: 배경 루프 + 상단 음영 밴드 (+최상단 배너) + 자막 → 아웃트로 카드 → 음성
+    // 5) 합성: 배경 3클립 순차 연결(각각 루프→트림) + 밴드 (+배너) + 자막 → 아웃트로 카드 → 음성
     const out = path.join(dir, 'out.mp4');
-    const inputs = ['-stream_loop', '-1', '-i', bgPath, '-i', narrPath,
-      '-loop', '1', '-i', outroPath,
-      '-loop', '1', '-i', bandPath];
-    let chain = `[0:v]scale=1080:1920:flags=lanczos,fps=30[bg];` +
-      `[bg][3:v]overlay=0:0[bb];`;
+    const seg = Math.max(3, total / 3);
+    const segLast = Math.max(3, total - 2 * seg + 1.0); // 마지막은 여유(-t로 컷)
+    const inputs = [
+      '-stream_loop', '-1', '-i', bgPaths[0],
+      '-stream_loop', '-1', '-i', bgPaths[1],
+      '-stream_loop', '-1', '-i', bgPaths[2],
+      '-i', narrPath,                       // 3: 음성
+      '-loop', '1', '-i', outroPath,        // 4: 아웃트로
+      '-loop', '1', '-i', bandPath];        // 5: 노란 밴드
+    let chain =
+      `[0:v]trim=duration=${seg.toFixed(2)},setpts=PTS-STARTPTS,scale=1080:1920:flags=lanczos[c0];` +
+      `[1:v]trim=duration=${seg.toFixed(2)},setpts=PTS-STARTPTS,scale=1080:1920:flags=lanczos[c1];` +
+      `[2:v]trim=duration=${segLast.toFixed(2)},setpts=PTS-STARTPTS,scale=1080:1920:flags=lanczos[c2];` +
+      `[c0][c1][c2]concat=n=3:v=1:a=0,fps=30[bg];` +
+      `[bg][5:v]overlay=0:0[bb];`;
     let last = 'bb';
     if (bannerPath) {
       // 배너(투명 PNG)는 화면 최상단 중앙 — 그 아래 노란 음영 제목, 그 아래 자막 순서
       inputs.push('-loop', '1', '-i', bannerPath);
-      chain += `[4:v]scale=920:-1[bn];[${last}][bn]overlay=(main_w-overlay_w)/2:20[bw];`;
+      chain += `[6:v]scale=920:-1[bn];[${last}][bn]overlay=(main_w-overlay_w)/2:20[bw];`;
       last = 'bw';
     }
     chain += `[${last}]subtitles=${assPath}:fontsdir=${fontsDir}[sv];` +
-      `[sv][2:v]overlay=0:0:enable='gte(t,${outroStart.toFixed(2)})'[v2];` +
+      `[sv][4:v]overlay=0:0:enable='gte(t,${outroStart.toFixed(2)})'[v2];` +
       `[v2]format=yuv420p[vout]`;
     execFileSync(FF, ['-y', ...inputs,
-      '-filter_complex', chain, '-map', '[vout]', '-map', '1:a', '-af', 'apad',
+      '-filter_complex', chain, '-map', '[vout]', '-map', '3:a', '-af', 'apad',
       '-c:v', 'libx264', '-profile:v', 'high', '-preset', 'veryfast', '-r', '30', '-pix_fmt', 'yuv420p',
       '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2),
       '-movflags', '+faststart', out], { stdio: 'ignore' });
@@ -320,7 +341,8 @@ async function buildEpisode(item) {
     const durDiff = Math.abs(outDur - total);
     qa.push(['길이 일치(음성+아웃트로 ±0.5s)', durDiff <= 0.5, `영상 ${outDur.toFixed(2)}s / 음성 ${narrDur.toFixed(2)}s+${OUTRO_TAIL}s / 차이 ${durDiff.toFixed(2)}s`]);
     qa.push(['아웃트로 카드', outroBuf.length > 5000, `${(outroBuf.length / 1024) | 0}KB`]);
-    qa.push(['중앙 배너', true, bannerPath ? '적용' : '없음(Blob 캐시 전)']);
+    qa.push(['상단 배너', true, bannerPath ? '적용' : '없음(Blob 캐시 전)']);
+    qa.push(['배경 3클립 조합', bgs.length === 3 && new Set(bgs).size === 3, bgs.join('→')]);
     qa.push(['해상도 1080×1920', /1080x1920/.test(info), '']);
     qa.push(['오디오 스트림', /Audio:\s*aac/.test(info), '']);
     const marker = item.season === 1 ? `[건보 면접 30일 릴스 ${item.code}]` : `[건보 면접 D-30 스프린트 ${item.code}]`;
@@ -331,7 +353,7 @@ async function buildEpisode(item) {
     const failed = qa.filter(q => !q[1]);
     if (failed.length) throw new Error('QA 실패: ' + failed.map(f => f[0] + (f[2] ? `(${f[2]})` : '')).join(', '));
 
-    return { mp4: fs.readFileSync(out), outDur, narrDur, segCount: segs.length, ttsMode: mode, qa };
+    return { mp4: fs.readFileSync(out), outDur, narrDur, segCount: segs.length, ttsMode: mode, qa, bgs };
   } finally {
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
   }
@@ -401,7 +423,7 @@ module.exports = async (req, res) => {
 
     if (dryrun) {
       if (q.json === '1') {
-        return out(200, { ok: true, dryrun: true, idx: idx + 1, code: item.code, title: item.title, bg: item.bg,
+        return out(200, { ok: true, dryrun: true, idx: idx + 1, code: item.code, title: item.title, bgs: ep.bgs,
           videoUrl: blob.url, durationSec: ep.outDur, narrDur: ep.narrDur, segCount: ep.segCount,
           ttsMode: ep.ttsMode, buildSec, qa: ep.qa.map(x => ({ name: x[0], pass: x[1], note: x[2] })) });
       }
