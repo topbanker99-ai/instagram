@@ -1,5 +1,5 @@
 // api/reels60-cron.js
-// 건보 면접 릴스 60일 연속 자동발행 — 계정 1번(topbanker99, 기존 릴스 발행 체계)
+// 건보 면접 릴스 60일 연속 자동발행 — 계정 2번(top_career_, 건보 콘텐츠 전용 계정)
 //   · 시즌1 R01→R30 → 시즌2 D-30→D-1, 하루 1편 끊김 없이 순차 발행 (reels60-data.js)
 //   · 제작: ElevenLabs TTS(기존 브랜드 보이스 동일) → 배경영상 V1~V5 루프 합성(-shortest)
 //           → 나레이션 싱크 자막(하단, 흰 글씨+검정 반투명) + 훅 문구(0~2초 상단 대형) 번인
@@ -11,7 +11,7 @@
 //   · 이력: Blob reels60-history.csv (일차,세트,발행일시KST,미디어ID,상태)
 //   · 진도: Blob reels60-progress.json (다음 발행 index)
 //
-// 환경변수: IG_USER_ID, IG_ACCESS_TOKEN, ELEVENLABS_API_KEY, (선택)ELEVENLABS_VOICE_ID,
+// 환경변수: IG_USER_ID_2, IG_ACCESS_TOKEN_2, ELEVENLABS_API_KEY, (선택)ELEVENLABS_VOICE_ID,
 //           CRON_SECRET, PUBLISH_SECRET, BLOB_READ_WRITE_TOKEN
 // 수동:  ?secret=<PUBLISH_SECRET>&day=1&dryrun=1  → 미리보기 HTML(발행 안 함)
 //        ?secret=<PUBLISH_SECRET>                 → 즉시 발행(다음 회차)
@@ -373,10 +373,10 @@ async function buildEpisode(item) {
   }
 }
 
-/* ───────── 릴스 발행 (계정1 — 기존 voice-reel과 동일 플로우) ───────── */
+/* ───────── 릴스 발행 (계정2 @top_career_ — 건보 콘텐츠는 계정2 전용, 사용자 확정) ───────── */
 async function publishReel(videoUrl, caption) {
-  const IG = process.env.IG_USER_ID, TOKEN = process.env.IG_ACCESS_TOKEN;
-  if (!IG || !TOKEN) throw new Error('IG_USER_ID/IG_ACCESS_TOKEN 환경변수가 없습니다.');
+  const IG = process.env.IG_USER_ID_2, TOKEN = process.env.IG_ACCESS_TOKEN_2;
+  if (!IG || !TOKEN) throw new Error('IG_USER_ID_2/IG_ACCESS_TOKEN_2 환경변수가 없습니다.');
   const rC = await fetch(`${GRAPH}/${IG}/media`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ media_type: 'REELS', video_url: videoUrl, caption, thumb_offset: 1000, access_token: TOKEN }) });
   const jC = await rC.json(); if (!rC.ok || !jC.id) throw new Error('릴스 컨테이너 실패: ' + JSON.stringify(jC.error || jC));

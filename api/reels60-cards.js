@@ -36,7 +36,7 @@ function chrome(ctx, assets) {
   ctx.textAlign = 'left';
   ctx.fillStyle = ORANGE; ctx.fillRect(0, 250, W, 14);
   ctx.fillStyle = GRAY; ctx.font = '400 34px "Pretendard Regular"';
-  ctx.fillText('@topbanker99  ·  건보 합격 정보 연재', 48, 1830);
+  ctx.fillText('@top_career_  ·  건보 합격 정보 연재', 48, 1830);
 }
 function chips(ctx, c1, c2, y) {
   ctx.font = '700 44px "Pretendard Bold"';
