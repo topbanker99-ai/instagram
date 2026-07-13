@@ -162,7 +162,8 @@
         { name:'에세이',         dow:[0],     hh:9,  mm:0 },
         { name:'스펙 카드뉴스',  dow:[0],     hh:12, mm:0 },
         { name:'릴스',           dow:[2,6],   hh:18, mm:0 },
-        { name:'기업분석',       dow:[0,1,2,3,4,5,6], hh:20, mm:0 }
+        { name:'기업분석',       dow:[0,1,2,3,4,5,6], hh:20, mm:0 },
+        { name:'건보 면접 릴스 60일', dow:[0,1,2,3,4,5,6], hh:12, mm:0, from:'2026-07-14', until:'2026-09-11' }
       ]
     },
     2: {
@@ -193,6 +194,7 @@
         var t = new Date(day.getFullYear(), day.getMonth(), day.getDate(), s.hh, s.mm, 0);
         if(t.getTime() <= now.getTime()) return; // 이미 지난 건 제외
         if(s.from && t.getTime() < new Date(s.from + 'T00:00:00').getTime()) return; // 시작일 이전 제외
+        if(s.until && t.getTime() > new Date(s.until + 'T23:59:59').getTime()) return; // 종료일 이후 제외
         out.push({ name:s.name, t:t });
       });
     }

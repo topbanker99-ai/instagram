@@ -29,7 +29,7 @@ const HISTORY_KEY = 'reels60-history.csv';
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'n2fbxG88jqAoaVPUy3IG';
 const TTS_MODEL = 'eleven_multilingual_v2';
 const PREVIEW_KEY = 'r60p-x7k2m9qe41';
-const NOT_BEFORE = Date.parse('2099-01-01T00:00:00Z'); // 시작일 확정 후 교체
+const NOT_BEFORE = Date.parse('2026-07-13T15:00:00Z'); // 2026-07-14 00:00 KST — 첫 발행 7/14(화) 낮 12시
 const BANNED = '온더탑스튜디오';
 // 중앙 배너(힉스필드 생성 → Blob 캐시). ?pkey&cacheUrl=<원본URL> 로 갱신
 const BANNER_URL = 'https://kznnn3ogeuwatyvq.public.blob.vercel-storage.com/reels60-assets/banner.png';
@@ -423,6 +423,10 @@ module.exports = async (req, res) => {
       return out(200, { ok: true, skipped: true, reason: '시작일 이전 — 발행 안 함' });
     }
     const prog = await readProgress();
+    // 60편 완주 시 자동 종료 (사용자 확정) — 재가동하려면 진도 리셋 필요
+    if (!dryrun && !forced && (prog.index || 0) >= SETS.length) {
+      return out(200, { ok: true, done: true, reason: '60편 완주 — 시리즈 종료' });
+    }
     let idx;
     if (forced && forced >= 1 && forced <= SETS.length) idx = forced - 1;
     else idx = ((prog.index || 0) % SETS.length + SETS.length) % SETS.length;
@@ -463,7 +467,7 @@ module.exports = async (req, res) => {
       await appendHistory([idx + 1, item.code, nowKST(), '', 'ERROR: ' + String(err.message).replace(/[,\n]/g, ' ').slice(0, 120)].join(','));
       throw err;
     }
-    prog.index = (idx + 1) % SETS.length;
+    prog.index = idx + 1; // 60 도달 시 위 가드가 종료 처리 (모듈로 재순환 없음)
     prog.lastPublished = { idx: idx + 1, code: item.code, title: item.title, mediaId, at: new Date().toISOString() };
     await blobWrite(PROGRESS_KEY, JSON.stringify(prog), 'application/json');
     await appendHistory([idx + 1, item.code, nowKST(), mediaId, 'PUBLISHED'].join(','));
