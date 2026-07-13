@@ -1,5 +1,5 @@
 // api/reels60-cron.js
-// 건보 면접 릴스 60일 연속 자동발행 — 계정 2번(top_career_, 건보 콘텐츠 전용 계정)
+// 건보 면접 릴스 60편 자동발행 — 계정 2번(top_career_, 건보 콘텐츠 전용) · 주 2회: 수 19:00 + 토 12:00 KST
 //   · 시즌1 R01→R30 → 시즌2 D-30→D-1, 하루 1편 끊김 없이 순차 발행 (reels60-data.js)
 //   · 제작: ElevenLabs TTS(기존 브랜드 보이스 동일) → 배경영상 V1~V5 루프 합성(-shortest)
 //           → 나레이션 싱크 자막(하단, 흰 글씨+검정 반투명) + 훅 문구(0~2초 상단 대형) 번인
@@ -29,7 +29,7 @@ const HISTORY_KEY = 'reels60-history.csv';
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'n2fbxG88jqAoaVPUy3IG';
 const TTS_MODEL = 'eleven_multilingual_v2';
 const PREVIEW_KEY = 'r60p-x7k2m9qe41';
-const NOT_BEFORE = Date.parse('2026-07-13T15:00:00Z'); // 2026-07-14 00:00 KST — 첫 발행 7/14(화) 낮 12시
+const NOT_BEFORE = Date.parse('2026-07-13T15:00:00Z'); // 2026-07-14 00:00 KST — 첫 발행 7/15(수) 19시 (주2회: 수 19시·토 12시)
 const BANNED = '온더탑스튜디오';
 // 중앙 배너(힉스필드 생성 → Blob 캐시). ?pkey&cacheUrl=<원본URL> 로 갱신
 const BANNER_URL = 'https://kznnn3ogeuwatyvq.public.blob.vercel-storage.com/reels60-assets/banner.png';
