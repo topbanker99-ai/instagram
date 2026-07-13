@@ -92,7 +92,8 @@ function segmentsFromAlign(align) {
     while (b >= a && !String(chars[b]).trim()) b--;
     if (a > b) return;
     const text = chars.slice(a, b + 1).join('');
-    if (text.length <= SEG_MAXC) { segs.push({ text, start: st[a], end: en[b] }); return; }
+    // 34자 이내라도 12자 랩 기준 4줄 이상이면 추가 분할 (자막 과다 적층 방지)
+    if (text.length <= SEG_MAXC && wrapAss(text, 12).split('\\N').length <= 3) { segs.push({ text, start: st[a], end: en[b] }); return; }
     const mid = Math.floor((a + b) / 2);
     let cut = -1;
     for (let i = a + 4; i <= b - 4; i++) if (chars[i] === ',') { if (cut === -1 || Math.abs(i - mid) < Math.abs(cut - mid)) cut = i; }
@@ -117,7 +118,7 @@ function segmentsFromAlign(align) {
 }
 function chunkSentence(t) {
   t = t.trim();
-  if (t.length <= SEG_MAXC) return [t];
+  if (t.length <= SEG_MAXC && wrapAss(t, 12).split('\\N').length <= 3) return [t];
   const mid = Math.floor(t.length / 2);
   let cut = -1;
   for (let i = 4; i <= t.length - 5; i++) if (t[i] === ',') { if (cut === -1 || Math.abs(i - mid) < Math.abs(cut - mid)) cut = i; }
