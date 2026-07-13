@@ -172,21 +172,31 @@ function hlWrap(text, maxLen, base, big) {
 }
 
 function buildAss(segs, titleMain, titleSub, totalDur) {
-  // 제목(노란 음영 밴드 y450~800) — 메인·서브 전부 동일 크기(사용자 지시), 서브는 항상 별도 줄, 밴드 중앙 정렬
-  const mainW = wrapAss(assEsc(titleMain), 12);
-  const subW = titleSub ? wrapAss(assEsc(titleSub), 12) : '';
-  const wrapped = subW ? mainW + '\\N' + subW : mainW;
-  const tLines = wrapped.split('\\N');
-  const maxLen = Math.max(...tLines.map(l => l.replace(/\{[^}]*\}/g, '').length), 1);
-  const n = tLines.length;
-  const fs = Math.max(48, Math.min(88, Math.floor(1040 / maxLen), Math.floor(310 / (n * 1.22))));
-  const topMargin = Math.max(462, Math.round(625 - (n * fs * 1.22) / 2));
-
+  // 제목(노란 음영 밴드 y450~800) — 사용자 확정 A안(위계 반전): 주제(서브)를 초대형으로 위, 질문(메인)은 작게 아래
   let ev = '';
-  ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TMain,,0,0,${topMargin},,{\\fs${fs}}${wrapped}\n`;
-  // 하단: 예능 팝 자막 (흰 글씨+블루 테두리+그림자, 핵심어 노랑+확대)
+  if (titleSub) {
+    const subTxt = assEsc(titleSub);
+    const fsSub = Math.max(84, Math.min(126, Math.floor(1000 / titleSub.length)));
+    const mainW = wrapAss(assEsc(titleMain), 18);
+    const mLines = mainW.split('\\N').length;
+    const fsMain = mLines > 1 ? 50 : 56;
+    const subH = Math.round(fsSub * 1.18), mainH = Math.round(mLines * fsMain * 1.24), gap = 24;
+    const topMargin = Math.max(468, Math.round(625 - (subH + gap + mainH) / 2));
+    ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TMain,,0,0,${topMargin},,{\\fs${fsSub}}${subTxt}\n`;
+    ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TMain,,0,0,${topMargin + subH + gap},,{\\fs${fsMain}}${mainW}\n`;
+  } else {
+    // 서브 없음 — 단독 제목 밴드 중앙
+    const mainW = wrapAss(assEsc(titleMain), 12);
+    const tLines = mainW.split('\\N');
+    const maxLen = Math.max(...tLines.map(l => l.replace(/\{[^}]*\}/g, '').length), 1);
+    const n = tLines.length;
+    const fs = Math.max(48, Math.min(88, Math.floor(1040 / maxLen), Math.floor(310 / (n * 1.22))));
+    const topMargin = Math.max(462, Math.round(625 - (n * fs * 1.22) / 2));
+    ev += `Dialogue: 2,${assTime(0)},${assTime(totalDur)},TMain,,0,0,${topMargin},,{\\fs${fs}}${mainW}\n`;
+  }
+  // 하단: 예능 팝 자막 (흰 글씨+블루 테두리+그림자, 핵심어 노랑+확대) — 사용자 지시로 +2pt
   for (const s of segs) {
-    ev += `Dialogue: 0,${assTime(s.start)},${assTime(s.end)},Sub,,0,0,0,,${hlWrap(assEsc(s.text), 12, 82, 102)}\n`;
+    ev += `Dialogue: 0,${assTime(s.start)},${assTime(s.end)},Sub,,0,0,0,,${hlWrap(assEsc(s.text), 12, 84, 104)}\n`;
   }
   return `[Script Info]
 ScriptType: v4.00+
@@ -197,7 +207,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Sub,Pretendard,82,&H00FFFFFF,&H00FFFFFF,&H00D46F1A,&H78000000,1,0,0,0,100,100,0,0,1,11,4,2,50,50,470,1
+Style: Sub,Pretendard,84,&H00FFFFFF,&H00FFFFFF,&H00D46F1A,&H78000000,1,0,0,0,100,100,0,0,1,11,4,2,50,50,470,1
 Style: TMain,Black Han Sans,104,&H00401505,&H00FFFFFF,&H0000E5FF,&H00000000,0,0,0,0,100,100,1,0,1,0,0,8,40,40,505,1
 Style: TSub,Black Han Sans,54,&H00401505,&H00FFFFFF,&H0000E5FF,&H00000000,0,0,0,0,100,100,1,0,1,0,0,8,40,40,652,1
 
