@@ -102,7 +102,10 @@ function segmentsFromAlign(align) {
   };
   let s = 0;
   for (let i = 0; i < chars.length; i++) {
-    if (/[.!?…]/.test(chars[i])) { emit(s, i); s = i + 1; }
+    if (/[.!?…]/.test(chars[i])) {
+      if (chars[i] === '.' && /\d/.test(String(chars[i + 1] || ''))) continue; // 소수점(2.5배수 등)은 문장 끝 아님
+      emit(s, i); s = i + 1;
+    }
   }
   if (s < chars.length) emit(s, chars.length - 1);
   segs.sort((x, y) => x.start - y.start);
