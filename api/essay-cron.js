@@ -42,11 +42,22 @@ function head(ctx,main,cap,idx,total){
   if(idx){ const pg=`${String(idx).padStart(2,'0')} / ${String(total).padStart(2,'0')}`; ctx.fillStyle=cap; ctx.font=fnt('Pretendard SemiBold',24); dT(ctx,W-M-tW(ctx,pg,0),60,pg,0); }
 }
 
+const RAW_ASSETS='https://raw.githubusercontent.com/topbanker99-ai/instagram/main';
+let CHAR_IMG=null;   // 좌우반전 캐릭터 — 표지 우하단 (로드 실패 시 그냥 생략)
+function drawCharFlipped(ctx, cxCenter, bottom, targetH, shadowAlpha){
+  if(!CHAR_IMG) return;
+  const r=targetH/CHAR_IMG.height, w=Math.round(CHAR_IMG.width*r), x=Math.round(cxCenter-w/2), y=bottom-targetH;
+  ctx.save(); ctx.shadowColor=`rgba(0,0,0,${shadowAlpha})`; ctx.shadowBlur=36; ctx.shadowOffsetY=8;
+  ctx.translate(x+w,y); ctx.scale(-1,1); ctx.drawImage(CHAR_IMG,0,0,w,targetH); ctx.restore();
+}
+
 /* ───────── 표지 ───────── */
 function makeCover(createCanvas, it, idx, total){
   const W=1080,M=100,CX=W/2; const [cv,ctx]=newCanvas(createCanvas,false);
   const main=COL.INK, body=COL.SOFT_L, cap=COL.CAP_L, accent=COL.BLUE_L;
-  head(ctx,main,cap,idx,total);
+  head(ctx,main,cap,0,total);   // 페이지번호는 캐릭터 반대편(좌상단)에 직접 표기
+  const pgc=`${String(idx).padStart(2,'0')} / ${String(total).padStart(2,'0')}`;
+  ctx.fillStyle=cap; ctx.font=fnt('Pretendard SemiBold',24); dT(ctx,96,60,pgc,0);
   let y=240;
   ctx.fillStyle=accent; ctx.font=fnt('Pretendard Bold',40); dC(ctx,CX,y,'이주의 논술 기출',-0.5); y+=92;
   let inst=clean(it.inst), is=96; ctx.font=fnt('Pretendard Bold',is);
@@ -56,6 +67,7 @@ function makeCover(createCanvas, it, idx, total){
   ctx.strokeStyle=accent; ctx.globalAlpha=0.3; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(CX-60,y+6); ctx.lineTo(CX+60,y+6); ctx.stroke(); ctx.globalAlpha=1; y+=44;
   ctx.fillStyle=body; ctx.font=fnt('Pretendard SemiBold',34); for(const l of wrap(ctx,clean(it.topic),W-2*M,0)){ dC(ctx,CX,y,l,0); y+=48; }
   ctx.fillStyle=cap; ctx.font=fnt('Pretendard Regular',26); dC(ctx,CX,886,'은행·금융공기업 필기·면접 논술 대비',0);
+  drawCharFlipped(ctx, 890, 1080, 340, 0.22);   // 표지 우하단 캐릭터
   return cv.toBuffer('image/png');
 }
 
@@ -191,6 +203,7 @@ module.exports = async (req, res) => {
     let canvasMod; try{ canvasMod=require('@napi-rs/canvas'); }catch(e){ return out(500,{ok:false,error:'@napi-rs/canvas 로드 실패: '+e.message}); }
     const { createCanvas, GlobalFonts }=canvasMod;
     await ensureFonts(GlobalFonts);
+    if(!CHAR_IMG){ try{ const r=await fetch(`${RAW_ASSETS}/character.png`); if(r.ok) CHAR_IMG=await canvasMod.loadImage(Buffer.from(await r.arrayBuffer())); }catch(e){} }
 
     // 문제 분할 계산
     const mctx=createCanvas(1080,1080).getContext('2d');

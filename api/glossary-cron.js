@@ -21,6 +21,14 @@ const GRAPH = `https://graph.instagram.com/${API_VERSION}`;
 const PROGRESS_KEY = 'glossary-progress.json';
 const PRETENDARD_BASE = 'https://raw.githubusercontent.com/orioncactus/pretendard/main/packages/pretendard/dist/public/static/';
 const CIRC = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+const RAW_ASSETS='https://raw.githubusercontent.com/topbanker99-ai/instagram/main';
+let CHAR_IMG=null;   // 좌우반전 캐릭터 — 1번 카드 우상단 (로드 실패 시 그냥 생략)
+function drawCharFlipped(ctx, cxCenter, bottom, targetH, shadowAlpha){
+  if(!CHAR_IMG) return;
+  const r=targetH/CHAR_IMG.height, w=Math.round(CHAR_IMG.width*r), x=Math.round(cxCenter-w/2), y=bottom-targetH;
+  ctx.save(); ctx.shadowColor=`rgba(0,0,0,${shadowAlpha})`; ctx.shadowBlur=36; ctx.shadowOffsetY=8;
+  ctx.translate(x+w,y); ctx.scale(-1,1); ctx.drawImage(CHAR_IMG,0,0,w,targetH); ctx.restore();
+}
 
 /* ───────── 카드 렌더러 (애플 미니멀, 한글) ───────── */
 const COL = { WHITE:'#FFFFFF', PARCH:'#F5F5F7', DARK:'#1D1D1F', INK:'#1D1D1F',
@@ -66,6 +74,7 @@ function makeCard(createCanvas, term, idx, total, dark){
   const pg=`${String(idx).padStart(2,'0')} / ${String(total).padStart(2,'0')}`;
   ctx.fillStyle=cap; ctx.font=fnt('Pretendard SemiBold',28);
   ctx.fillText(pg, W-M-trackedWidth(ctx,pg,0), 992);
+  if(idx===1) drawCharFlipped(ctx, 936, 296, 252, 0.20);   // 첫 카드 우상단 캐릭터
   return canvas.toBuffer('image/png');
 }
 
@@ -143,6 +152,7 @@ module.exports = async (req, res) => {
     try{ canvasMod=require('@napi-rs/canvas'); }catch(e){ return out(500,{ok:false,error:'@napi-rs/canvas 로드 실패: '+e.message}); }
     const { createCanvas, GlobalFonts }=canvasMod;
     await ensureFonts(GlobalFonts);
+    if(!CHAR_IMG){ try{ const r=await fetch(`${RAW_ASSETS}/character.png`); if(r.ok) CHAR_IMG=await canvasMod.loadImage(Buffer.from(await r.arrayBuffer())); }catch(e){} }
 
     const total=TERMS.length;
     let start=await readProgress(); if(start>=total||start<0) start=0;

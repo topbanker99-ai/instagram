@@ -47,7 +47,7 @@ function drawCharacter(ctx, cxCenter, bottom, targetH){
   if(!CHAR_IMG) return;
   const r=targetH/CHAR_IMG.height, w=Math.round(CHAR_IMG.width*r), x=Math.round(cxCenter-w/2), y=bottom-targetH;
   ctx.save(); ctx.shadowColor='rgba(0,0,0,0.45)'; ctx.shadowBlur=40; ctx.shadowOffsetY=8;
-  ctx.drawImage(CHAR_IMG,x,y,w,targetH); ctx.restore();
+  ctx.translate(x+w,y); ctx.scale(-1,1); ctx.drawImage(CHAR_IMG,0,0,w,targetH); ctx.restore();   // 좌우반전(지시봉이 본문 방향)
 }
 function drawLogoChip(ctx, cx, cy, targetW, radius, pad){
   if(!LOGO_IMG) return 0;

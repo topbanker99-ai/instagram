@@ -46,6 +46,15 @@ function wrapText(ctx,text,maxw,tr){
 function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 function fmtDate(s){ if(!s) return ''; const d=new Date(s); if(isNaN(d.getTime())) return clean(s).slice(0,10); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`; }
 
+const RAW_ASSETS='https://raw.githubusercontent.com/topbanker99-ai/instagram/main';
+let CHAR_IMG=null;   // 좌우반전 캐릭터 — 커버 우하단 (로드 실패 시 그냥 생략)
+function drawCharFlipped(ctx, cxCenter, bottom, targetH, shadowAlpha){
+  if(!CHAR_IMG) return;
+  const r=targetH/CHAR_IMG.height, w=Math.round(CHAR_IMG.width*r), x=Math.round(cxCenter-w/2), y=bottom-targetH;
+  ctx.save(); ctx.shadowColor=`rgba(0,0,0,${shadowAlpha})`; ctx.shadowBlur=36; ctx.shadowOffsetY=8;
+  ctx.translate(x+w,y); ctx.scale(-1,1); ctx.drawImage(CHAR_IMG,0,0,w,targetH); ctx.restore();
+}
+
 /* ───────── 커버(자동 구성) ───────── */
 function makeCover(createCanvas, dateLabel){
   const W=1080,M=100,CX=W/2;
@@ -62,6 +71,7 @@ function makeCover(createCanvas, dateLabel){
   ctx.strokeStyle=accent; ctx.globalAlpha=0.3; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(CX-64,y+6); ctx.lineTo(CX+64,y+6); ctx.stroke(); ctx.globalAlpha=1; y+=48;
   ctx.fillStyle=body; ctx.font=fnt('Pretendard SemiBold',34); drawCentered(ctx,CX,y,'면접관이 꼭 물어볼 이슈 3선',0);
   ctx.fillStyle=cap; ctx.font=fnt('Pretendard Regular',26); drawCentered(ctx,CX,884,'은행·금융권 면접 대비 시사 카드',0);
+  drawCharFlipped(ctx, 884, 1080, 380, 0.22);   // 커버 우하단 캐릭터
   return canvas.toBuffer('image/png');
 }
 
@@ -190,6 +200,7 @@ module.exports = async (req, res) => {
     let canvasMod; try{ canvasMod=require('@napi-rs/canvas'); }catch(e){ return out(500,{ok:false,error:'@napi-rs/canvas 로드 실패: '+e.message}); }
     const { createCanvas, GlobalFonts }=canvasMod;
     await ensureFonts(GlobalFonts);
+    if(!CHAR_IMG){ try{ const r=await fetch(`${RAW_ASSETS}/character.png`); if(r.ok) CHAR_IMG=await canvasMod.loadImage(Buffer.from(await r.arrayBuffer())); }catch(e){} }
 
     const dateLabel=`${fmtDate(feed.updated_at||new Date().toISOString())} 기준`;
     const total=1+arts.length;            // 페이지 번호용(커버+뉴스). 마무리 이미지는 별도.

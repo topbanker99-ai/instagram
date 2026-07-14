@@ -55,6 +55,23 @@ function meaningful(s){
   return true;
 }
 
+/* ───────── 캐릭터(좌우반전)·은행 로고 ───────── */
+const RAW_ASSETS='https://raw.githubusercontent.com/topbanker99-ai/instagram/main';
+let CHAR_IMG=null, LOGO_IMG=null;   // 발행 직전 프리로드 (없으면 그냥 생략)
+function drawCharFlipped(ctx, cxCenter, bottom, targetH, shadowAlpha){
+  if(!CHAR_IMG) return;
+  const r=targetH/CHAR_IMG.height, w=Math.round(CHAR_IMG.width*r), x=Math.round(cxCenter-w/2), y=bottom-targetH;
+  ctx.save(); ctx.shadowColor=`rgba(0,0,0,${shadowAlpha})`; ctx.shadowBlur=36; ctx.shadowOffsetY=8;
+  ctx.translate(x+w,y); ctx.scale(-1,1); ctx.drawImage(CHAR_IMG,0,0,w,targetH); ctx.restore();
+}
+function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function bankLogoKey(name){ const n=String(name||'');
+  if(/국민|KB/.test(n))return 'kb'; if(/신한/.test(n))return 'shinhan'; if(/우리/.test(n))return 'woori';
+  if(/하나/.test(n))return 'hana'; if(/농협|NH/.test(n))return 'nh'; if(/기업|IBK/.test(n))return 'ibk';
+  if(/수협/.test(n))return 'sh'; if(/부산/.test(n))return 'busan'; if(/경남/.test(n))return 'gyeongnam';
+  if(/광주/.test(n))return 'gwangju'; if(/전북/.test(n))return 'jeonbuk'; if(/제주/.test(n))return 'jeju';
+  return null; }
+
 /* ───────── 커버 카드 (라이트) ───────── */
 function makeCover(createCanvas, post, total){
   const W=1080,M=110,CW=W-2*M,CX=W/2;
@@ -62,7 +79,14 @@ function makeCover(createCanvas, post, total){
   const canvas=createCanvas(W,W); const ctx=canvas.getContext('2d');
   ctx.fillStyle=COL.WHITE; ctx.fillRect(0,0,W,W); ctx.textBaseline='top';
   ctx.fillStyle=main; ctx.font=fnt('Pretendard Bold',29); drawCentered(ctx,CX,86,'TOP BANKER',5);
-  let y=300;
+  if(LOGO_IMG){   // 은행 로고 칩 (중앙 상단, 흰 칩+연회색 테두리)
+    const tw2=200, r=tw2/LOGO_IMG.width, h=Math.round(LOGO_IMG.height*r), px=26, py=18;
+    const cw2=tw2+px*2, ch2=h+py*2, cx0=CX-cw2/2, cy0=158;
+    ctx.fillStyle='#FFFFFF'; roundRectPath(ctx,cx0,cy0,cw2,ch2,18); ctx.fill();
+    ctx.strokeStyle='#E3E3E8'; ctx.lineWidth=2; roundRectPath(ctx,cx0,cy0,cw2,ch2,18); ctx.stroke();
+    ctx.drawImage(LOGO_IMG,cx0+px,cy0+py,tw2,h);
+  }
+  let y=316;
   ctx.fillStyle=accent; ctx.font=fnt('Pretendard Bold',40); drawCentered(ctx,CX,y,'은행권 합격자 스펙',-0.5); y+=84;
   let hs=92,tr=-hs*0.02; ctx.font=fnt('Pretendard Bold',hs);
   while(trackedWidth(ctx,post.bank,tr)>CW&&hs>52){hs-=4;tr=-hs*0.02;ctx.font=fnt('Pretendard Bold',hs);}
@@ -79,7 +103,8 @@ function makeCover(createCanvas, post, total){
   drawCentered(ctx,CX,872,'학교 · 학점 · 어학 · 자격증 · 인턴 / 경력',0);
   const pg=`01 / ${String(total).padStart(2,'0')}`;
   ctx.fillStyle=cap; ctx.font=fnt('Pretendard SemiBold',28);
-  ctx.fillText(pg, W-M-trackedWidth(ctx,pg,0), 992);
+  ctx.fillText(pg, M, 992);                                    // 캐릭터 자리를 피해 좌측으로
+  drawCharFlipped(ctx, 884, 1080, 360, 0.22);                  // 커버 우하단 캐릭터
   return canvas.toBuffer('image/png');
 }
 
@@ -216,6 +241,10 @@ module.exports = async (req, res) => {
     await ensureFonts(GlobalFonts);
 
     const post=posts[nextPostIndex];
+    if(!CHAR_IMG){ try{ const r=await fetch(`${RAW_ASSETS}/character.png`); if(r.ok) CHAR_IMG=await canvasMod.loadImage(Buffer.from(await r.arrayBuffer())); }catch(e){} }
+    LOGO_IMG=null;
+    { const lk=bankLogoKey(post.bank);
+      if(lk){ try{ const r=await fetch(`${RAW_ASSETS}/logos/${lk}.png`); if(r.ok) LOGO_IMG=await canvasMod.loadImage(Buffer.from(await r.arrayBuffer())); }catch(e){} } }
     const sizes=evenSplit(post.people.length, PER_CARD);
     const totalCards=1+sizes.length;
 
