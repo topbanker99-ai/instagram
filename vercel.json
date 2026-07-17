@@ -71,6 +71,9 @@
       "maxDuration": 300,
       "memory": 3008,
       "includeFiles": "node_modules/**"
+    },
+    "api/comic-cron.js": {
+      "maxDuration": 180
     }
   },
   "crons": [
@@ -133,6 +136,14 @@
     {
       "path": "/api/reels60-cron",
       "schedule": "0 3 * * 6"
+    },
+    {
+      "path": "/api/comic-cron",
+      "schedule": "0 12 * * 2"
+    },
+    {
+      "path": "/api/comic-cron",
+      "schedule": "0 12 * * 3"
     }
   ]
 }
