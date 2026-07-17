@@ -224,9 +224,43 @@
 
   <div class="ptext" style="text-align:left; margin: -4px 0 14px;">맨 위 <strong>본문(캡션)</strong> 칸에 적은 내용이 이 릴스에도 함께 올라갑니다. 인스타에서 영상을 처리하는 데 몇 분 걸릴 수 있습니다.</div>
 
+  <div class="field">
+    <label class="label">발행 방식</label>
+    <div class="opts">
+      <button type="button" class="opt active" id="modeNow">즉시 발행</button>
+      <button type="button" class="opt" id="modeLater">예약 발행</button>
+    </div>
+  </div>
+
+  <div id="schedBox" style="display:none;">
+    <div class="field">
+      <label class="label">발행 계정</label>
+      <div class="opts">
+        <button type="button" class="opt active" id="acct1">@topbanker99 <span class="hint">은행·금융</span></button>
+        <button type="button" class="opt" id="acct2">@top_career_ <span class="hint">공기업·건보</span></button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">발행 시각 <span class="hint">— 이 시각에 자동 발행됩니다 (실제 발행은 최대 15분 내)</span></label>
+      <div class="opts" style="margin-bottom:10px;">
+        <button type="button" class="opt" data-add="1">+1시간</button>
+        <button type="button" class="opt" data-add="3">+3시간</button>
+        <button type="button" class="opt" data-add="6">+6시간</button>
+        <button type="button" class="opt" data-add="24">내일 이맘때</button>
+        <button type="button" class="opt" data-tomorrow9="1">내일 아침 9시</button>
+      </div>
+      <input type="datetime-local" id="schedAt" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:15px;font-family:inherit;color:var(--tx);background:var(--panel);outline:none;" />
+    </div>
+  </div>
+
   <button class="btn" id="vreelBtn" disabled>이 영상 릴스로 <span class="accent">발행</span></button>
   <div class="progress" id="vreelProgress"><div class="bar"><i id="vreelBar"></i></div><div class="ptext" id="vreelPtext"></div></div>
   <div class="status" id="vreelStatus"></div>
+
+  <div class="field" id="queueBox" style="margin-top:22px;">
+    <label class="label">예약 목록 <span class="hint">— 발행 대기 중인 영상 <button type="button" id="queueRefresh" class="opt" style="padding:3px 10px;font-size:12px;margin-left:6px;">새로고침</button></span></label>
+    <div id="queueList" class="status" style="display:block;padding:0;background:none;border:none;color:var(--tx2);font-size:13px;">발행 비밀키를 입력하고 새로고침을 누르면 예약 목록이 표시됩니다.</div>
+  </div>
 
   <div class="footnote">
     인스타 발행 후 <strong>instagram.com/topbanker99</strong> 에서 게시물을 확인하세요.<br />
@@ -708,12 +742,72 @@ is-buffer/index.js:
     if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) setPickedVideo(e.dataTransfer.files[0]);
   });
 
+  // ── 예약 발행 UI 상태 ──
+  var SCHED = { mode: 'now', account: '1' };
+  var modeNow = document.getElementById('modeNow'), modeLater = document.getElementById('modeLater');
+  var schedBox = document.getElementById('schedBox'), schedAt = document.getElementById('schedAt');
+  var acct1 = document.getElementById('acct1'), acct2 = document.getElementById('acct2');
+  function toLocalValue(d) { var p = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+  function setSchedFromNow(hoursLater) { var d = new Date(Date.now() + hoursLater * 3600 * 1000); schedAt.value = toLocalValue(d); }
+  function setTomorrow9() { var d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); schedAt.value = toLocalValue(d); }
+  if (modeNow) modeNow.addEventListener('click', function () { SCHED.mode = 'now'; modeNow.classList.add('active'); modeLater.classList.remove('active'); schedBox.style.display = 'none'; vreelBtn.innerHTML = '이 영상 릴스로 <span class="accent">발행</span>'; });
+  if (modeLater) modeLater.addEventListener('click', function () { SCHED.mode = 'later'; modeLater.classList.add('active'); modeNow.classList.remove('active'); schedBox.style.display = 'block'; if (!schedAt.value) setSchedFromNow(3); vreelBtn.innerHTML = '이 시각에 <span class="accent">예약 발행</span>'; });
+  if (acct1) acct1.addEventListener('click', function () { SCHED.account = '1'; acct1.classList.add('active'); acct2.classList.remove('active'); });
+  if (acct2) acct2.addEventListener('click', function () { SCHED.account = '2'; acct2.classList.add('active'); acct1.classList.remove('active'); });
+  document.querySelectorAll('#schedBox [data-add]').forEach(function (b) { b.addEventListener('click', function () { setSchedFromNow(parseFloat(b.getAttribute('data-add'))); }); });
+  document.querySelectorAll('#schedBox [data-tomorrow9]').forEach(function (b) { b.addEventListener('click', setTomorrow9); });
+
+  // ── 예약 목록 ──
+  var queueList = document.getElementById('queueList'), queueRefresh = document.getElementById('queueRefresh');
+  function fmtWhen(iso) { var d = new Date(iso); var p = function (n) { return String(n).padStart(2, '0'); };
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+  var STLBL = { pending: '대기', published: '발행됨', failed: '실패', canceled: '취소됨' };
+  function loadQueue() {
+    var secret = secretEl.value.trim();
+    if (!secret) { queueList.innerHTML = '발행 비밀키를 입력하고 새로고침을 누르세요.'; return; }
+    queueList.innerHTML = '불러오는 중…';
+    fetch('/api/schedule?action=list', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-publish-secret': secret }, body: JSON.stringify({}) })
+      .then(function (r) { return r.json(); }).then(function (d) {
+        if (!d.ok) { queueList.innerHTML = '목록을 불러오지 못했습니다: ' + (d.error || '') ; return; }
+        var items = d.items || [];
+        if (!items.length) { queueList.innerHTML = '예약된 발행이 없습니다.'; return; }
+        queueList.innerHTML = items.map(function (it) {
+          var who = it.account === '2' ? '@top_career_' : '@topbanker99';
+          var cap = (it.caption || '').replace(/</g, '&lt;'); if (cap.length > 40) cap = cap.slice(0, 40) + '…';
+          var color = it.status === 'pending' ? '#e0417a' : (it.status === 'published' ? '#2ec07a' : (it.status === 'failed' ? '#e05a5a' : '#8a8a92'));
+          var btn = it.status === 'pending' ? '<button type="button" class="opt qcancel" data-id="' + it.id + '" style="padding:3px 10px;font-size:12px;">취소</button>' : '';
+          var err = it.error ? '<div style="color:#e05a5a;font-size:12px;">' + String(it.error).replace(/</g, '&lt;') + '</div>' : '';
+          return '<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+            '<span><b style="color:' + color + '">' + (STLBL[it.status] || it.status) + '</b> · ' + fmtWhen(it.publishAt) + ' · ' + who + '</span>' + btn + '</div>' +
+            '<div style="color:var(--mut);font-size:12px;margin-top:4px;">' + (cap || '(캡션 없음)') + '</div>' + err + '</div>';
+        }).join('');
+        document.querySelectorAll('.qcancel').forEach(function (b) { b.addEventListener('click', function () {
+          if (!confirm('이 예약을 취소할까요?')) return;
+          fetch('/api/schedule?action=cancel', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-publish-secret': secretEl.value.trim() }, body: JSON.stringify({ id: b.getAttribute('data-id') }) })
+            .then(function (r) { return r.json(); }).then(function (d) { if (d.ok) loadQueue(); else alert('취소 실패: ' + (d.error || '')); });
+        }); });
+      }).catch(function (e) { queueList.innerHTML = '오류: ' + (e && e.message ? e.message : e); });
+  }
+  if (queueRefresh) queueRefresh.addEventListener('click', loadQueue);
+
   vreelBtn.addEventListener('click', function () {
     if (busy) return;
     if (!pickedVideo) { setVStatus('err', '먼저 올릴 영상을 선택해 주세요.'); return; }
     var secret = secretEl.value.trim();
     if (!secret) { setVStatus('err', '발행 비밀키를 입력하세요.'); return; }
     if (typeof VercelBlobClient === 'undefined' || !VercelBlobClient.upload) { setVStatus('err', '업로드 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.'); return; }
+
+    var scheduled = SCHED.mode === 'later';
+    var publishAtISO = null;
+    if (scheduled) {
+      if (!schedAt.value) { setVStatus('err', '예약할 발행 시각을 선택해 주세요.'); return; }
+      var t = new Date(schedAt.value);
+      if (isNaN(t.getTime())) { setVStatus('err', '발행 시각이 올바르지 않습니다.'); return; }
+      if (t.getTime() < Date.now() - 60000) { setVStatus('err', '발행 시각이 과거입니다. 미래 시각을 선택하세요.'); return; }
+      publishAtISO = t.toISOString();
+    }
 
     busy = true; vreelBtn.disabled = true; reelBtn.disabled = true; makeBtn.disabled = true; previewBtn.disabled = true; publishEl.disabled = true;
     vreelStatus.className = 'status'; vreelStatus.innerHTML = '';
@@ -733,23 +827,35 @@ is-buffer/index.js:
       }
     }).then(function (result) {
       vreelBar.style.width = '100%';
+      if (scheduled) {
+        vreelPtext.textContent = '예약을 등록하는 중…';
+        return fetch('/api/schedule?action=add', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-publish-secret': secret },
+          body: JSON.stringify({ type: 'reel', account: SCHED.account, videoUrl: result.url, caption: capEl.value, publishAt: publishAtISO })
+        }).then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data, scheduled: true }; }); });
+      }
       vreelPtext.textContent = '인스타그램에서 영상을 처리하고 발행하는 중입니다. 몇 분 걸릴 수 있어요…';
       return fetch(REEL_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-publish-secret': secret },
         body: JSON.stringify({ caption: capEl.value, videoUrl: result.url })
-      });
-    }).then(function (res) {
-      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      }).then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data, scheduled: false }; }); });
     }).then(function (r) {
       vreelProgress.className = 'progress';
       if (r.ok && r.data && r.data.ok) {
-        setVStatus('ok', '릴스가 발행되었습니다.<br />확인: <a href="' + IG_PROFILE + '" target="_blank" rel="noopener">instagram.com/topbanker99</a>');
+        if (r.scheduled) {
+          var whenTxt = new Date(publishAtISO).toLocaleString('ko-KR');
+          var whoTxt = SCHED.account === '2' ? '@top_career_' : '@topbanker99';
+          setVStatus('ok', '예약되었습니다 — ' + whenTxt + ' · ' + whoTxt + '<br />아래 예약 목록에서 확인·취소할 수 있어요.');
+          loadQueue();
+        } else {
+          setVStatus('ok', '릴스가 발행되었습니다.<br />확인: <a href="' + IG_PROFILE + '" target="_blank" rel="noopener">instagram.com/topbanker99</a>');
+        }
       } else {
         var d = r.data || {}; var msg = d.error;
         if (msg && typeof msg === 'object') msg = msg.message || JSON.stringify(msg);
         var step = d.step ? ' [' + d.step + ']' : '';
-        setVStatus('err', '릴스 발행 실패' + step + ': ' + (msg || '알 수 없는 오류') + '<br /><span style="color:var(--muted)">세로 9:16 · MP4(H.264/AAC) 형식인지, 길이가 너무 길지 않은지 확인해 보세요.</span>');
+        setVStatus('err', (r.scheduled ? '예약 실패' : '릴스 발행 실패') + step + ': ' + (msg || '알 수 없는 오류') + '<br /><span style="color:var(--muted)">세로 9:16 · MP4(H.264/AAC) 형식인지, 길이가 너무 길지 않은지 확인해 보세요.</span>');
       }
     }).catch(function (err) {
       vreelProgress.className = 'progress';

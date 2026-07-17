@@ -74,6 +74,9 @@
     },
     "api/comic-cron.js": {
       "maxDuration": 180
+    },
+    "api/schedule.js": {
+      "maxDuration": 300
     }
   },
   "crons": [
@@ -144,6 +147,10 @@
     {
       "path": "/api/comic-cron",
       "schedule": "0 12 * * 3"
+    },
+    {
+      "path": "/api/schedule?action=run",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
