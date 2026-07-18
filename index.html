@@ -243,11 +243,16 @@
     <div class="field">
       <label class="label">발행 시각 <span class="hint">— 이 시각에 자동 발행됩니다 (실제 발행은 최대 15분 내)</span></label>
       <div class="opts" style="margin-bottom:10px;">
-        <button type="button" class="opt" data-add="1">+1시간</button>
-        <button type="button" class="opt" data-add="3">+3시간</button>
-        <button type="button" class="opt" data-add="6">+6시간</button>
-        <button type="button" class="opt" data-add="24">내일 이맘때</button>
-        <button type="button" class="opt" data-tomorrow9="1">내일 아침 9시</button>
+        <button type="button" class="opt" data-add="6">6시간 뒤</button>
+        <button type="button" class="opt" data-add="24">1일 뒤</button>
+        <button type="button" class="opt" data-add="72">3일 뒤</button>
+        <button type="button" class="opt" data-add="120">5일 뒤</button>
+        <button type="button" class="opt" data-add="168">7일 뒤</button>
+        <button type="button" class="opt" data-add="216">9일 뒤</button>
+        <button type="button" class="opt" data-add="264">11일 뒤</button>
+        <button type="button" class="opt" data-add="312">13일 뒤</button>
+        <button type="button" class="opt" data-add="360">15일 뒤</button>
+        <button type="button" class="opt" data-add="480">20일 뒤</button>
       </div>
       <input type="datetime-local" id="schedAt" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:15px;font-family:inherit;color:var(--tx);background:var(--panel);outline:none;" />
     </div>
@@ -752,7 +757,7 @@ is-buffer/index.js:
   function setSchedFromNow(hoursLater) { var d = new Date(Date.now() + hoursLater * 3600 * 1000); schedAt.value = toLocalValue(d); }
   function setTomorrow9() { var d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); schedAt.value = toLocalValue(d); }
   if (modeNow) modeNow.addEventListener('click', function () { SCHED.mode = 'now'; modeNow.classList.add('active'); modeLater.classList.remove('active'); schedBox.style.display = 'none'; vreelBtn.innerHTML = '이 영상 릴스로 <span class="accent">발행</span>'; });
-  if (modeLater) modeLater.addEventListener('click', function () { SCHED.mode = 'later'; modeLater.classList.add('active'); modeNow.classList.remove('active'); schedBox.style.display = 'block'; if (!schedAt.value) setSchedFromNow(3); vreelBtn.innerHTML = '이 시각에 <span class="accent">예약 발행</span>'; });
+  if (modeLater) modeLater.addEventListener('click', function () { SCHED.mode = 'later'; modeLater.classList.add('active'); modeNow.classList.remove('active'); schedBox.style.display = 'block'; if (!schedAt.value) setSchedFromNow(24); vreelBtn.innerHTML = '이 시각에 <span class="accent">예약 발행</span>'; });
   if (acct1) acct1.addEventListener('click', function () { SCHED.account = '1'; acct1.classList.add('active'); acct2.classList.remove('active'); });
   if (acct2) acct2.addEventListener('click', function () { SCHED.account = '2'; acct2.classList.add('active'); acct1.classList.remove('active'); });
   document.querySelectorAll('#schedBox [data-add]').forEach(function (b) { b.addEventListener('click', function () { setSchedFromNow(parseFloat(b.getAttribute('data-add'))); }); });
@@ -814,7 +819,9 @@ is-buffer/index.js:
     vreelProgress.className = 'progress show'; vreelBar.style.width = '0%'; vreelPtext.textContent = '영상을 업로드하는 중…';
 
     var now = new Date(), pad = function (n) { return String(n).padStart(2, '0'); };
-    var pathname = 'reels/upload-' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()) + '.' + videoExt(pickedVideo);
+    // 예약 영상은 정리 크론(reels/ 3일 삭제) 대상이 아닌 scheduled/ 폴더에 업로드
+    var prefix = scheduled ? 'scheduled/upload-' : 'reels/upload-';
+    var pathname = prefix + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()) + '.' + videoExt(pickedVideo);
 
     VercelBlobClient.upload(pathname, pickedVideo, {
       access: 'public',

@@ -8,7 +8,7 @@
 // 발행 계정: account=1 → IG_USER_ID/IG_ACCESS_TOKEN, account=2 → IG_USER_ID_2/IG_ACCESS_TOKEN_2
 // 환경변수: PUBLISH_SECRET, CRON_SECRET, IG_USER_ID(_2), IG_ACCESS_TOKEN(_2), BLOB_READ_WRITE_TOKEN
 
-const { put, list } = require('./blob-bundle.js');
+const { put, list, del } = require('./blob-bundle.js');
 
 const API_VERSION = 'v23.0';
 const GRAPH = `https://graph.instagram.com/${API_VERSION}`;
@@ -88,7 +88,10 @@ module.exports = async (req, res) => {
         const { IG, TOKEN } = acctEnv(it.account);
         if (!IG || !TOKEN) { it.status = 'failed'; it.error = '계정 환경변수 없음'; results.push(pubItem(it)); continue; }
         try {
-          if (it.type === 'reel') { it.mediaId = await publishReel(IG, TOKEN, it.videoUrl, it.caption); it.status = 'published'; it.publishedAt = new Date().toISOString(); }
+          if (it.type === 'reel') {
+            it.mediaId = await publishReel(IG, TOKEN, it.videoUrl, it.caption); it.status = 'published'; it.publishedAt = new Date().toISOString();
+            try { await del(it.videoUrl, { token: process.env.BLOB_READ_WRITE_TOKEN }); } catch (e) {} // 발행 후 예약 영상 정리
+          }
           else { it.status = 'failed'; it.error = '지원하지 않는 형식: ' + it.type; }
         } catch (e) { it.status = 'failed'; it.error = String(e.message).slice(0, 200); }
         results.push(pubItem(it)); processed++;
