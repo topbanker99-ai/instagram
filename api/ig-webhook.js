@@ -39,7 +39,8 @@ module.exports = async (req, res) => {
   if (req.method === 'GET') {
     const q = req.query || {};
     const mode = q['hub.mode'], token = q['hub.verify_token'], challenge = q['hub.challenge'];
-    if (mode === 'subscribe' && token && token === process.env.IG_WEBHOOK_VERIFY_TOKEN) {
+    const VERIFY = process.env.IG_WEBHOOK_VERIFY_TOKEN || 'topbanker_gonggong_2026';
+    if (mode === 'subscribe' && token && token === VERIFY) {
       res.statusCode = 200; res.setHeader('Content-Type', 'text/plain'); return res.end(String(challenge || ''));
     }
     res.statusCode = 403; return res.end('forbidden');
@@ -54,9 +55,11 @@ module.exports = async (req, res) => {
   try {
     const IG = process.env.IG_USER_ID, TOKEN = process.env.IG_ACCESS_TOKEN;
     const KEYWORD = (process.env.DM_KEYWORD || '금공채').trim();
-    const PDF = process.env.DM_PDF_URL || '';
+    const PDF = process.env.DM_PDF_URL || 'https://instagram-three-wheat.vercel.app/reel-assets/gonggongchae-2026.pdf';
     const REPLY = process.env.DM_REPLY_TEXT ||
-      ('요청 주신 금공채 자료 보내드려요 📎\n' + (PDF ? PDF + '\n\n' : '') + '도움이 되면 저장·공유 부탁드려요! 궁금한 점은 편하게 DM 주세요.');
+      ('안녕하세요! 요청 주신 2026 금융권 공동채용박람회 현장면접 완전정리 자료 보내드려요 📎\n\n' +
+       PDF + '\n\n' +
+       '위 링크에서 바로 받으실 수 있어요. 도움이 되면 게시물 저장해두시고, 면접 준비하다 궁금한 점 생기면 편하게 DM 주세요. 합격 응원합니다! 🙌');
     if (!IG || !TOKEN) return;
 
     for (const entry of (body.entry || [])) {
