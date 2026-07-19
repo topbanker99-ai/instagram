@@ -53,7 +53,10 @@ module.exports = async (req, res) => {
   res.statusCode = 200; res.end('EVENT_RECEIVED');
 
   try {
-    const IG = process.env.IG_USER_ID, TOKEN = process.env.IG_ACCESS_TOKEN;
+    const IG = process.env.IG_USER_ID;
+    // DM(비공개 답장)은 comments/messages 관리 스코프가 있는 토큰이 필요.
+    // 발행용 IG_ACCESS_TOKEN엔 그 스코프가 없을 수 있어 DM 전용 토큰을 우선 사용.
+    const TOKEN = process.env.IG_DM_TOKEN || process.env.IG_ACCESS_TOKEN;
     const KEYWORD = (process.env.DM_KEYWORD || '금공채').trim();
     const PDF = process.env.DM_PDF_URL || 'https://instagram-three-wheat.vercel.app/reel-assets/gonggongchae-2026.pdf';
     const REPLY = process.env.DM_REPLY_TEXT ||
